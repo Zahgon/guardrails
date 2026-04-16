@@ -46,11 +46,7 @@ def remove_from_hub_inits(manifest: Manifest, site_packages: str):
 
 
 def uninstall_hub_module(manifest: Manifest):
-    from guardrails.hub.validator_package_service import ValidatorPackageService
-
-    validator_id = manifest.id
-    package_name = ValidatorPackageService.get_normalized_package_name(validator_id)
-    pip_process("uninstall", package_name, flags=["-y"], quiet=True)
+    pass
 
 
 @hub_command.command()
@@ -61,32 +57,4 @@ def uninstall(
     ),
 ):
     """Uninstall a validator from the Hub."""
-    from guardrails.hub.validator_package_service import ValidatorPackageService
-
-    if not package_uri.startswith("hub://"):
-        logger.error("Invalid URI!")
-        sys.exit(1)
-
-    console.print(f"\nUninstalling {package_uri}...\n")
-    logger.log(
-        level=LEVELS.get("SPAM", 0),
-        msg=f"Uninstalling {package_uri}...",
-    )
-
-    # Validation
-    module_name = package_uri.replace("hub://", "")
-
-    # Prep
-    with console.status("Fetching manifest", spinner="bouncingBar"):
-        module_manifest = get_validator_manifest(module_name)
-
-    # Uninstall
-    with console.status("Removing module", spinner="bouncingBar"):
-        uninstall_hub_module(module_manifest)
-
-    # Cleanup
-    with console.status("Cleaning up", spinner="bouncingBar"):
-        ValidatorPackageService.unregister_validator(module_name)
-
-    console.print("✅ Successfully uninstalled!")  # type: ignore
-    logger.log(level=LEVELS.get("SPAM"), msg="✅ Successfully uninstalled!")  # type: ignore
+    pass

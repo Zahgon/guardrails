@@ -214,116 +214,13 @@ class Runner:
         output: Optional[str] = None,
     ) -> Iteration:
         """Run a full step."""
-        prompt_params = prompt_params or {}
-        inputs = Inputs(
-            llm_api=api,
-            llm_output=output,
-            messages=messages,
-            prompt_params=prompt_params,
-            num_reasks=self.num_reasks,
-            metadata=self.metadata,
-            full_schema_reask=self.full_schema_reask,
-        )
-        outputs = Outputs()
-        iteration = Iteration(
-            callId=call_log.id, index=index, inputs=inputs, outputs=outputs
-        )
-        set_scope(str(id(iteration)))
-        call_log.iterations.push(iteration)
-
-        try:
-            # Prepare: run pre-processing, and input validation.
-            if output is not None:
-                messages = None
-            else:
-                messages = self.prepare(
-                    call_log,
-                    messages=messages,
-                    prompt_params=prompt_params,
-                    api=api,
-                    attempt_number=index,
-                )
-
-            iteration.inputs.messages = messages
-
-            # Call: run the API.
-            llm_response = self.call(messages, api, output)
-
-            iteration.outputs.llm_response_info = llm_response
-            raw_output = llm_response.output
-
-            # Parse: parse the output.
-            parsed_output, parsing_error = self.parse(raw_output, output_schema)
-            if parsing_error or isinstance(parsed_output, ReAsk):
-                iteration.outputs.exception = parsing_error  # type: ignore
-                iteration.outputs.error = str(parsing_error)
-                iteration.outputs.reasks.append(parsed_output)  # type: ignore
-            else:
-                iteration.outputs.parsed_output = parsed_output
-
-            # Validate: run output validation.
-            if parsing_error and isinstance(parsed_output, NonParseableReAsk):
-                reasks, _ = self.introspect(parsed_output)
-            else:
-                # Validate: run output validation.
-                validated_output = self.validate(
-                    iteration, index, parsed_output, output_schema
-                )
-                iteration.outputs.validation_response = validated_output
-
-                # Introspect: inspect validated output for reasks.
-                reasks, valid_output = self.introspect(validated_output)
-                iteration.outputs.guarded_output = valid_output
-
-            iteration.outputs.reasks = list(reasks)
-
-        except Exception as e:
-            error_message = str(e)
-            iteration.outputs.error = error_message
-            iteration.outputs.exception = e
-            raise e
-        return iteration
+        pass
 
     @trace(name="/input_validation", origin="Runner.validate_messages")
     def validate_messages(
         self, call_log: Call, messages: MessageHistory, attempt_number: int
     ) -> None:
-        for msg in messages:
-            content = (
-                msg["content"].source
-                if isinstance(msg["content"], Prompt)
-                else msg["content"]
-            )
-            inputs = Inputs(
-                llm_output=content,
-            )
-            iteration = Iteration(
-                callId=call_log.id, index=attempt_number, inputs=inputs
-            )
-            call_log.iterations.insert(0, iteration)
-            value, _metadata = validator_service.validate(
-                value=content,
-                metadata=self.metadata,
-                validator_map=self.validation_map,
-                iteration=iteration,
-                disable_tracer=self._disable_tracer,
-                path="messages",
-            )
-
-            validated_msg = validator_service.post_process_validation(
-                value, attempt_number, iteration, OutputTypes.STRING
-            )
-
-            iteration.outputs.validation_response = validated_msg
-
-            if isinstance(validated_msg, ReAsk):
-                raise ValidationError(f"Messages validation failed: {validated_msg}")
-            elif not validated_msg or iteration.status == fail_status:
-                raise ValidationError("Messages validation failed")
-
-            msg["content"] = cast(str, validated_msg)
-
-        return messages  # type: ignore
+        pass
 
     def prepare_messages(
         self,
@@ -332,47 +229,11 @@ class Runner:
         prompt_params: Dict,
         attempt_number: int,
     ) -> MessageHistory:
-        formatted_messages: MessageHistory = []
-        # Format any variables in the message history with the prompt params.
-        for msg in messages:
-            msg_copy = copy.deepcopy(msg)
-            if attempt_number == 0:
-                msg_copy["content"] = msg_copy["content"].format(**prompt_params)
-            formatted_messages.append(msg_copy)
-
-        # validate messages
-        if "messages" in self.validation_map:
-            self.validate_messages(call_log, formatted_messages, attempt_number)
-
-        return formatted_messages
+        pass
 
     @trace(name="/input_validation", origin="Runner.validate_prompt")
     def validate_prompt(self, call_log: Call, prompt: Prompt, attempt_number: int):
-        inputs = Inputs(
-            llm_output=prompt.source,
-        )
-        iteration = Iteration(callId=call_log.id, index=attempt_number, inputs=inputs)
-        call_log.iterations.insert(0, iteration)
-        value, _metadata = validator_service.validate(
-            value=prompt.source,
-            metadata=self.metadata,
-            validator_map=self.validation_map,
-            iteration=iteration,
-            disable_tracer=self._disable_tracer,
-            path="prompt",
-        )
-
-        validated_prompt = validator_service.post_process_validation(
-            value, attempt_number, iteration, OutputTypes.STRING
-        )
-
-        iteration.outputs.validation_response = validated_prompt
-
-        if isinstance(validated_prompt, ReAsk):
-            raise ValidationError(f"Prompt validation failed: {validated_prompt}")
-        elif not validated_prompt or iteration.status == fail_status:
-            raise ValidationError("Prompt validation failed")
-        return Prompt(cast(str, validated_prompt))
+        pass
 
     @trace(name="/input_prep", origin="Runner.prepare")
     def prepare(
@@ -389,16 +250,7 @@ class Runner:
         Returns:
             The message history.
         """
-        prompt_params = prompt_params or {}
-        if api is None:
-            raise UserFacingException(ValueError("API must be provided."))
-
-        if messages:
-            messages = self.prepare_messages(
-                call_log, messages, prompt_params, attempt_number
-            )
-
-        return messages
+        pass
 
     @trace(name="/llm_call", origin="Runner.call")
     @trace_call
@@ -492,9 +344,7 @@ class Runner:
 
     def do_loop(self, attempt_number: int, reasks: Sequence[ReAsk]) -> bool:
         """Determine if we should loop again."""
-        if reasks and attempt_number < self.num_reasks:
-            return True
-        return False
+        pass
 
     def prepare_to_loop(
         self,
@@ -509,17 +359,4 @@ class Runner:
         Optional[Union[List[Dict], Messages]],
     ]:
         """Prepare to loop again."""
-        prompt_params = prompt_params or {}
-        output_schema, messages = get_reask_setup(
-            output_type=self.output_type,
-            output_schema=output_schema,
-            validation_map=self.validation_map,
-            reasks=reasks,
-            parsing_response=parsed_output,
-            validation_response=validated_output,
-            use_full_schema=self.full_schema_reask,
-            prompt_params=prompt_params,
-            exec_options=self.exec_options,
-        )
-
-        return output_schema, messages
+        pass

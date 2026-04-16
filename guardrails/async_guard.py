@@ -136,8 +136,7 @@ class AsyncGuard(Guard, Generic[OT]):
         validators: List[Validator] = [],
         on: str = "output",
     ) -> "AsyncGuard":
-        guard = super().use(*validator_spread, validators=validators, on=on)
-        return cast(AsyncGuard, guard)
+        pass
 
     async def _execute(
         self,
@@ -155,117 +154,7 @@ class AsyncGuard(Guard, Generic[OT]):
         Awaitable[ValidationOutcome[OT]],
         AsyncIterator[ValidationOutcome[OT]],
     ]:
-        self._fill_validator_map()
-        self._fill_validators()
-        metadata = metadata or {}
-        if not llm_output and llm_api and not (messages):
-            raise RuntimeError("'messages' must be provided in order to call an LLM!")
-        # check if validator requirements are fulfilled
-        missing_keys = verify_metadata_requirements(metadata, self._validators)
-        if missing_keys:
-            raise ValueError(
-                f"Missing required metadata keys: {', '.join(missing_keys)}"
-            )
-
-        async def __exec(
-            self: AsyncGuard,
-            *args,
-            llm_api: Optional[Callable[..., Awaitable[Any]]],
-            llm_output: Optional[str] = None,
-            prompt_params: Optional[Dict] = None,
-            num_reasks: Optional[int] = None,
-            messages: Optional[List[Dict]] = None,
-            metadata: Optional[Dict] = None,
-            full_schema_reask: Optional[bool] = None,
-            **kwargs,
-        ) -> Union[
-            ValidationOutcome[OT],
-            Awaitable[ValidationOutcome[OT]],
-            AsyncIterator[ValidationOutcome[OT]],
-        ]:
-            prompt_params = prompt_params or {}
-            metadata = metadata or {}
-            if full_schema_reask is None:
-                full_schema_reask = self._base_model is not None
-
-            set_call_kwargs(kwargs)
-
-            self._set_num_reasks(num_reasks=num_reasks)
-            if self._num_reasks is None:
-                raise RuntimeError(
-                    "`num_reasks` is `None` after calling `configure()`. "
-                    "This should never happen."
-                )
-
-            messages = messages or self._exec_opts.messages
-            call_inputs = CallInputs(
-                llmApi=llm_api,
-                messages=messages,
-                promptParams=prompt_params,
-                numReasks=self._num_reasks,
-                metadata=metadata,
-                fullSchemaReask=full_schema_reask,
-                args=list(args),
-                kwargs=kwargs,
-            )
-
-            if self._use_server and model_is_supported_server_side(
-                llm_api, *args, **kwargs
-            ):
-                result = self._call_server(
-                    llm_output=llm_output,
-                    llm_api=llm_api,
-                    num_reasks=self._num_reasks,
-                    prompt_params=prompt_params,
-                    metadata=metadata,
-                    full_schema_reask=full_schema_reask,
-                    messages=messages,
-                    *args,
-                    **kwargs,
-                )
-
-            # If the LLM API is async, return a coroutine
-            else:
-                call_log = Call(inputs=call_inputs)
-                set_scope(str(object_id(call_log)))
-                self.history.push(call_log)
-                result = await self._exec(
-                    llm_api=llm_api,
-                    llm_output=llm_output,
-                    prompt_params=prompt_params,
-                    num_reasks=self._num_reasks,
-                    messages=messages,
-                    metadata=metadata,
-                    full_schema_reask=full_schema_reask,
-                    call_log=call_log,
-                    *args,
-                    **kwargs,
-                )
-
-            if inspect.isawaitable(result):
-                return await result
-            # TODO: Fix types once async streaming is implemented on server
-            return result  # type: ignore
-
-        guard_context = contextvars.Context()
-        # get the current otel context and wrap the subsequent call
-        #   to preserve otel context if guard call is being called by another
-        # framework upstream
-        current_otel_context = otel_context.get_current()
-        wrapped__exec = wrap_with_otel_context(current_otel_context, __exec)
-        return await guard_context.run(
-            wrapped__exec,
-            self,
-            llm_api=llm_api,
-            llm_output=llm_output,
-            prompt_params=prompt_params,
-            num_reasks=num_reasks,
-            messages=messages,
-            metadata=metadata,
-            full_schema_reask=full_schema_reask,
-            *args,
-            **kwargs,
-        )
+        pass
 
     async def _exec(
         self,
@@ -300,66 +189,7 @@ class AsyncGuard(Guard, Generic[OT]):
         Returns:
             The raw text output from the LLM and the validated output.
         """
-        api = None
-
-        if llm_api is not None or kwargs.get("model") is not None:
-            api = get_async_llm_ask(llm_api, *args, **kwargs)  # type: ignore
-
-        if self._output_formatter is not None:
-            api = self._output_formatter.wrap_async_callable(api)  # type: ignore
-
-        if kwargs.get("stream", False):
-            runner = AsyncStreamRunner(
-                output_type=self._output_type,
-                output_schema=self.output_schema.model_dump(
-                    exclude_none=True, by_alias=True
-                ),
-                num_reasks=num_reasks,
-                validation_map=self._validator_map,
-                messages=messages,
-                api=api,
-                metadata=metadata,
-                output=llm_output,
-                base_model=self._base_model,
-                full_schema_reask=full_schema_reask,
-                disable_tracer=(
-                    not self._allow_metrics_collection
-                    if isinstance(self._allow_metrics_collection, bool)
-                    else None
-                ),
-                exec_options=self._exec_opts,
-            )
-            # Here we have an async generator
-            async_generator = runner.async_run(
-                call_log=call_log, prompt_params=prompt_params
-            )
-            return async_generator
-        else:
-            runner = AsyncRunner(
-                output_type=self._output_type,
-                output_schema=self.output_schema.model_dump(
-                    exclude_none=True, by_alias=True
-                ),
-                num_reasks=num_reasks,
-                validation_map=self._validator_map,
-                messages=messages,
-                api=api,
-                metadata=metadata,
-                output=llm_output,
-                base_model=self._base_model,
-                full_schema_reask=full_schema_reask,
-                disable_tracer=(
-                    not self._allow_metrics_collection
-                    if isinstance(self._allow_metrics_collection, bool)
-                    else None
-                ),
-                exec_options=self._exec_opts,
-            )
-            # Why are we using a different method here instead of just overriding?
-            call = await runner.async_run(
-                call_log=call_log, prompt_params=prompt_params
-            )
-            return ValidationOutcome[OT].from_guard_history(call)
+        pass
 
     @async_trace(name="/guard_call", origin="AsyncGuard.__call__")
     async def __call__(
@@ -484,46 +314,7 @@ class AsyncGuard(Guard, Generic[OT]):
     ) -> AsyncIterator[ValidationOutcome[OT]]:
         # TODO: Once server side supports async streaming, this function will need to
         # yield async generators, not generators
-        if self._api_client:
-            validation_output: Optional[IValidationOutcome] = None
-            response = self._api_client.stream_validate(
-                guard=self,  # type: ignore
-                openai_api_key=get_call_kwarg("api_key"),
-                **payload,
-            )
-            for fragment in response:
-                validation_output = fragment
-                if validation_output is None:
-                    yield ValidationOutcome[OT](
-                        call_id="0",  # type: ignore
-                        rawLlmOutput=None,
-                        validatedOutput=None,
-                        validationPassed=False,
-                        error="The response from the server was empty!",
-                    )
-                else:
-                    validated_output = (
-                        cast(OT, validation_output.validated_output)
-                        if validation_output.validated_output
-                        else None
-                    )
-                    yield ValidationOutcome[OT](
-                        call_id=validation_output.call_id,  # type: ignore
-                        raw_llm_output=validation_output.raw_llm_output,  # type: ignore
-                        validatedOutput=validated_output,
-                        validationPassed=(validation_output.validation_passed is True),
-                    )
-            # TODO re-enable this once we have a way to get history
-            # from a multi-node server
-            # if validation_output:
-            #     guard_history = self._api_client.get_history(
-            #         self.name, validation_output.call_id
-            #     )
-            #     self.history.extend(
-            #         [Call.from_interface(call) for call in guard_history]
-            #     )
-        else:
-            raise ValueError("AsyncGuard does not have an api client!")
+        pass
 
     @async_trace(name="/guard_call", origin="AsyncGuard.validate")
     async def validate(

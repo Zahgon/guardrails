@@ -20,26 +20,16 @@ class ScopeHandler(Handler):
         self.scoped_logs = {}
 
     def emit(self, record: LogRecord) -> None:
-        logs = self.scoped_logs.get(self.scope, [])
-        logs.append(record)
-        self.scoped_logs[self.scope] = logs
+        pass
 
     def set_scope(self, scope: str = base_scope):
         self.scope = scope
 
     def get_all_logs(self) -> List[LogRecord]:
-        all_logs = []
-        for key in self.scoped_logs:
-            logs = self.scoped_logs.get(key, [])
-            all_logs.extend(logs)
-        return all_logs
+        pass
 
     def get_logs(self, scope: Optional[str] = None) -> List[LogRecord]:
-        scope = scope or self.scope
-        if scope == all_scopes:
-            return self.get_all_logs()
-        logs = self.scoped_logs.get(scope, [])
-        return logs
+        pass
 
 
 class LoggerConfig:

@@ -66,8 +66,7 @@ class VectorDBBase(ABC):
     def similarity_search_with_threshold(
         self, text: str, k: int, threshold: float
     ) -> List[int]:
-        vector = self._embedder.embed_query(text)
-        return self.similarity_search_vector_with_threshold(vector, k, threshold)
+        pass
 
     def add_texts(self, texts: List[str], ids: Optional[List[Any]] = None) -> None:
         """Adds a list of texts to the store.
@@ -76,8 +75,7 @@ class VectorDBBase(ABC):
             texts: List of texts to add.
             ids: List of ids to associate with the texts.
         """
-        vectors = self._embedder.embed(texts)
-        self.add_vectors(vectors)
+        pass
 
     @abstractmethod
     def save(self, path: Optional[str] = None):

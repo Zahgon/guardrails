@@ -75,54 +75,7 @@ class AsyncRunner(Runner):
         Returns:
             The Call log for this run.
         """
-        prompt_params = prompt_params or {}
-        try:
-            (
-                messages,
-                output_schema,
-            ) = (
-                self.messages,
-                self.output_schema,
-            )
-            index = 0
-            for index in range(self.num_reasks + 1):
-                # Run a single step.
-                iteration = await self.async_step(
-                    index=index,
-                    api=self.api,
-                    messages=messages,
-                    prompt_params=prompt_params,
-                    output_schema=output_schema,
-                    output=self.output if index == 0 else None,
-                    call_log=call_log,
-                )
-
-                # Loop again?
-                if not self.do_loop(index, iteration.reasks):
-                    break
-
-                # Get new prompt and output schema.
-                (
-                    output_schema,
-                    messages,
-                ) = self.prepare_to_loop(
-                    iteration.reasks,
-                    output_schema,
-                    parsed_output=iteration.outputs.parsed_output,
-                    validated_output=call_log.validation_response,
-                    prompt_params=prompt_params,
-                )
-
-        except UserFacingException as e:
-            # Because Pydantic v1 doesn't respect property setters
-            call_log.exception = e.original_exception
-            raise e.original_exception
-        except Exception as e:
-            # Because Pydantic v1 doesn't respect property setters
-            call_log.exception = e
-            raise e
-
-        return call_log
+        pass
 
     # TODO: Refactor this to use inheritance and overrides
     @async_trace(name="/step", origin="AsyncRunner.async_step")
@@ -139,74 +92,7 @@ class AsyncRunner(Runner):
         output: Optional[str] = None,
     ) -> Iteration:
         """Run a full step."""
-        prompt_params = prompt_params or {}
-        inputs = Inputs(
-            llm_api=api,
-            llm_output=output,
-            messages=messages,
-            prompt_params=prompt_params,
-            num_reasks=self.num_reasks,
-            metadata=self.metadata,
-            full_schema_reask=self.full_schema_reask,
-        )
-        outputs = Outputs()
-        iteration = Iteration(
-            callId=call_log.id, index=index, inputs=inputs, outputs=outputs
-        )
-        set_scope(str(id(iteration)))
-        call_log.iterations.push(iteration)
-
-        try:
-            # Prepare: run pre-processing, and input validation.
-            if output is not None:
-                messages = None
-            else:
-                messages = await self.async_prepare(
-                    call_log,
-                    messages=messages,
-                    prompt_params=prompt_params,
-                    api=api,
-                    attempt_number=index,
-                )
-
-            iteration.inputs.messages = messages
-
-            # Call: run the API.
-            llm_response = await self.async_call(messages, api, output)
-
-            iteration.outputs.llm_response_info = llm_response
-            output = llm_response.output
-
-            # Parse: parse the output.
-            parsed_output, parsing_error = self.parse(output, output_schema)
-            if parsing_error or isinstance(parsed_output, ReAsk):
-                iteration.outputs.exception = parsing_error  # type: ignore  # pyright and pydantic don't agree
-                iteration.outputs.error = str(parsing_error)
-                iteration.outputs.reasks.append(parsed_output)  # type: ignore  # pyright and pydantic don't agree
-            else:
-                iteration.outputs.parsed_output = parsed_output  # type: ignore  # pyright and pydantic don't agree
-
-            if parsing_error and isinstance(parsed_output, NonParseableReAsk):
-                reasks, _ = self.introspect(parsed_output)
-            else:
-                # Validate: run output validation.
-                validated_output = await self.async_validate(
-                    iteration, index, parsed_output, output_schema
-                )
-                iteration.outputs.validation_response = validated_output
-
-                # Introspect: inspect validated output for reasks.
-                reasks, valid_output = self.introspect(validated_output)
-                iteration.outputs.guarded_output = valid_output
-
-            iteration.outputs.reasks = reasks  # type: ignore  # pyright and pydantic don't agree
-
-        except Exception as e:
-            error_message = str(e)
-            iteration.outputs.error = error_message
-            iteration.outputs.exception = e
-            raise e
-        return iteration
+        pass
 
     # TODO: Refactor this to use inheritance and overrides
     @async_trace(name="/llm_call", origin="AsyncRunner.async_call")
@@ -223,23 +109,7 @@ class AsyncRunner(Runner):
         2. Convert the response string to a dict,
         3. Log the output
         """
-        # If the API supports a base model, pass it in.
-        api_fn = api
-        if api is not None:
-            supports_base_model = getattr(api, "supports_base_model", False)
-            if supports_base_model:
-                api_fn = partial(api, base_model=self.base_model)
-        if output is not None:
-            llm_response = LLMResponse(
-                output=output,
-            )
-        elif api_fn is None:
-            raise ValueError("API or output must be provided.")
-        elif messages:
-            llm_response = await api_fn(messages=messages_source(messages))
-        else:
-            llm_response = await api_fn()
-        return llm_response
+        pass
 
     # TODO: Refactor this to use inheritance and overrides
     @async_trace(name="/validation", origin="AsyncRunner.async_validate")
@@ -297,23 +167,7 @@ class AsyncRunner(Runner):
         Returns:
             The messages.
         """
-        prompt_params = prompt_params or {}
-        if api is None:
-            raise UserFacingException(ValueError("API must be provided."))
-
-        if messages:
-            # Runner.prepare_messages
-            messages = await self.prepare_messages(
-                call_log=call_log,
-                messages=messages,
-                prompt_params=prompt_params,
-                attempt_number=attempt_number,
-            )
-
-        else:
-            raise UserFacingException(ValueError("'messages' must be provided."))
-
-        return messages
+        pass
 
     async def prepare_messages(
         self,
@@ -322,57 +176,10 @@ class AsyncRunner(Runner):
         prompt_params: Dict,
         attempt_number: int,
     ) -> MessageHistory:
-        formatted_messages = []
-
-        # Format any variables in the message history with the prompt params.
-        for msg in messages:
-            msg_copy = copy.deepcopy(msg)
-            if attempt_number == 0:
-                msg_copy["content"] = msg_copy["content"].format(**prompt_params)
-            formatted_messages.append(msg_copy)
-
-        if "messages" in self.validation_map:
-            await self.validate_messages(call_log, formatted_messages, attempt_number)
-
-        return formatted_messages
+        pass
 
     @async_trace(name="/input_validation", origin="AsyncRunner.validate_messages")
     async def validate_messages(
         self, call_log: Call, messages: MessageHistory, attempt_number: int
     ):
-        for msg in messages:
-            content = (
-                msg["content"].source
-                if isinstance(msg["content"], Prompt)
-                else msg["content"]
-            )
-            inputs = Inputs(
-                llm_output=content,
-            )
-            iteration = Iteration(
-                callId=call_log.id, index=attempt_number, inputs=inputs
-            )
-            call_log.iterations.insert(0, iteration)
-            value, _metadata = await validator_service.async_validate(
-                value=content,
-                metadata=self.metadata,
-                validator_map=self.validation_map,
-                iteration=iteration,
-                disable_tracer=self._disable_tracer,
-                path="messages",
-            )
-
-            validated_msg = validator_service.post_process_validation(
-                value, attempt_number, iteration, OutputTypes.STRING
-            )
-
-            iteration.outputs.validation_response = validated_msg
-
-            if isinstance(validated_msg, ReAsk):
-                raise ValidationError(f"Messages validation failed: {validated_msg}")
-            elif not validated_msg or iteration.status == fail_status:
-                raise ValidationError("Messages validation failed")
-
-            msg["content"] = cast(str, validated_msg)
-
-        return messages  # type: ignore
+        pass

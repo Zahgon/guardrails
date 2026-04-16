@@ -18,21 +18,12 @@ def _build_export_map() -> dict:
     Returns a dict mapping export names (e.g. "DetectPII") to their
     module import paths (e.g. "guardrails_grhub_detect_pii").
     """
-    registry = get_registry()
-    export_map = {}
-    for entry in registry.validators.values():
-        import_path = entry.import_path
-        for export_name in entry.exports:
-            export_map[export_name] = import_path
-    return export_map
+    pass
 
 
 def _get_export_map() -> dict:
     """Return cached export map, building it on first access."""
-    global _export_map_cache
-    if _export_map_cache is None:
-        _export_map_cache = _build_export_map()
-    return _export_map_cache
+    pass
 
 
 def __getattr__(name: str):

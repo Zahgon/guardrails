@@ -78,30 +78,7 @@ def add_step_attributes(
 def trace_step(fn: Callable[..., Iteration]):
     @wraps(fn)
     def trace_step_wrapper(*args, **kwargs) -> Iteration:
-        if not settings.disable_tracing:
-            current_otel_context = context.get_current()
-            tracer = trace.get_tracer("guardrails-ai", GUARDRAILS_VERSION)
-
-            with tracer.start_as_current_span(
-                name="step",  # type: ignore
-                context=current_otel_context,  # type: ignore
-            ) as step_span:
-                if SpanAttributes is not None:
-                    step_span.set_attribute(
-                        SpanAttributes.OPENINFERENCE_SPAN_KIND, "GUARDRAIL"
-                    )
-                try:
-                    response = fn(*args, **kwargs)
-                    add_step_attributes(step_span, response, *args, **kwargs)
-                    add_user_attributes(step_span)
-                    return response
-                except Exception as e:
-                    step_span.set_status(status=StatusCode.ERROR, description=str(e))
-                    add_step_attributes(step_span, None, *args, **kwargs)
-                    add_user_attributes(step_span)
-                    raise e
-        else:
-            return fn(*args, **kwargs)
+        pass
 
     return trace_step_wrapper
 
@@ -145,10 +122,7 @@ def trace_stream_step(
 ) -> Callable[..., Iterator[ValidationOutcome[OT]]]:
     @wraps(fn)
     def trace_stream_step_wrapper(*args, **kwargs) -> Iterator[ValidationOutcome[OT]]:
-        if not settings.disable_tracing:
-            return trace_stream_step_generator(fn, *args, **kwargs)
-        else:
-            return fn(*args, **kwargs)
+        pass
 
     return trace_stream_step_wrapper
 
@@ -156,32 +130,7 @@ def trace_stream_step(
 def trace_async_step(fn: Callable[..., Awaitable[Iteration]]):
     @wraps(fn)
     async def trace_async_step_wrapper(*args, **kwargs) -> Iteration:
-        if not settings.disable_tracing:
-            current_otel_context = context.get_current()
-            tracer = trace.get_tracer("guardrails-ai", GUARDRAILS_VERSION)
-
-            with tracer.start_as_current_span(
-                name="step",  # type: ignore
-                context=current_otel_context,  # type: ignore
-            ) as step_span:
-                if SpanAttributes is not None:
-                    step_span.set_attribute(
-                        SpanAttributes.OPENINFERENCE_SPAN_KIND, "GUARDRAIL"
-                    )
-                try:
-                    response = await fn(*args, **kwargs)
-                    add_user_attributes(step_span)
-                    add_step_attributes(step_span, response, *args, **kwargs)
-
-                    return response
-                except Exception as e:
-                    step_span.set_status(status=StatusCode.ERROR, description=str(e))
-                    add_user_attributes(step_span)
-                    add_step_attributes(step_span, None, *args, **kwargs)
-                    raise e
-
-        else:
-            return await fn(*args, **kwargs)
+        pass
 
     return trace_async_step_wrapper
 
@@ -228,10 +177,7 @@ def trace_async_stream_step(
     async def trace_async_stream_step_wrapper(
         *args, **kwargs
     ) -> AsyncIterator[ValidationOutcome[OT]]:
-        if not settings.disable_tracing:
-            return trace_async_stream_step_generator(fn, *args, **kwargs)
-        else:
-            return fn(*args, **kwargs)
+        pass
 
     return trace_async_stream_step_wrapper
 
@@ -279,29 +225,7 @@ def add_call_attributes(
 def trace_call(fn: Callable[..., LLMResponse]):
     @wraps(fn)
     def trace_call_wrapper(*args, **kwargs):
-        if not settings.disable_tracing:
-            current_otel_context = context.get_current()
-            tracer = trace.get_tracer("guardrails-ai", GUARDRAILS_VERSION)
-
-            with tracer.start_as_current_span(
-                name="call",  # type: ignore
-                context=current_otel_context,  # type: ignore
-            ) as call_span:
-                try:
-                    response = fn(*args, **kwargs)
-                    if isinstance(response, LLMResponse) and (
-                        response.async_stream_output or response.stream_output
-                    ):
-                        # TODO: Iterate, add a call attr each time
-                        return response
-                    add_call_attributes(call_span, response, *args, **kwargs)
-                    return response
-                except Exception as e:
-                    call_span.set_status(status=StatusCode.ERROR, description=str(e))
-                    add_call_attributes(call_span, None, *args, **kwargs)
-                    raise e
-        else:
-            return fn(*args, **kwargs)
+        pass
 
     return trace_call_wrapper
 
@@ -309,25 +233,7 @@ def trace_call(fn: Callable[..., LLMResponse]):
 def trace_async_call(fn: Callable[..., Awaitable[LLMResponse]]):
     @wraps(fn)
     async def trace_async_call_wrapper(*args, **kwargs):
-        if not settings.disable_tracing:
-            current_otel_context = context.get_current()
-            tracer = trace.get_tracer("guardrails-ai", GUARDRAILS_VERSION)
-
-            with tracer.start_as_current_span(
-                name="call",  # type: ignore
-                context=current_otel_context,  # type: ignore
-            ) as call_span:
-                try:
-                    response = await fn(*args, **kwargs)
-                    add_call_attributes(call_span, response, *args, **kwargs)
-                    return response
-                except Exception as e:
-                    call_span.set_status(status=StatusCode.ERROR, description=str(e))
-                    add_call_attributes(call_span, None, *args, **kwargs)
-                    raise e
-
-        else:
-            return await fn(*args, **kwargs)
+        pass
 
     return trace_async_call_wrapper
 

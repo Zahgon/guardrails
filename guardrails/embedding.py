@@ -50,46 +50,13 @@ class EmbeddingBase(ABC):
         Returns:
             List[float] Embedding of the text.
         """
-        try:
-            import numpy as np
-        except ImportError:
-            raise ImportError(
-                f"`numpy` is required for `{self.__class__.__name__}` class."
-                "Please install it with `poetry add numpy`."
-            )
-
-        chunk_embeddings_list = []
-        chunk_lens = []
-
-        for chunk in EmbeddingBase._chunked_tokens(
-            text=text, encoding_name=self._encoding_name, chunk_length=self._max_tokens
-        ):
-            chunk_embeddings_list.append(embedder(chunk))
-            chunk_lens.append(len(chunk))
-
-        if average:
-            chunk_embeddings = np.average(
-                chunk_embeddings_list, axis=0, weights=chunk_lens
-            )
-            chunk_embeddings = chunk_embeddings / np.linalg.norm(
-                chunk_embeddings
-            )  # normalizes length to 1
-        else:
-            chunk_embeddings = np.array(chunk_embeddings_list)
-        return chunk_embeddings.flatten().tolist()
+        pass
 
     @staticmethod
     def _chunked_tokens(text, encoding_name, chunk_length):
         """Calculates the number of tokens and chunks them into chunks of
         tokens."""
-        import tiktoken
-
-        encoding = tiktoken.get_encoding(encoding_name)
-        tokens = encoding.encode(text)
-        chunks_iterator = EmbeddingBase._batched(iterable=tokens, n=chunk_length)
-        # Detokenize the chunks
-        for chunk in chunks_iterator:
-            yield encoding.decode(chunk)
+        pass
 
     @staticmethod
     def _batched(iterable, n):
@@ -97,12 +64,7 @@ class EmbeddingBase(ABC):
 
         The last batch may be shorter.
         """
-        # batched('ABCDEFG', 3) --> ABC DEF G
-        if n < 1:
-            raise ValueError("n must be at least one")
-        it = iter(iterable)
-        while batch := list(islice(it, n)):
-            yield batch
+        pass
 
     @property
     def output_dim(self) -> int:
@@ -125,11 +87,7 @@ class OpenAIEmbedding(EmbeddingBase):
         self.api_base = api_base
 
     def embed(self, texts: List[str]) -> List[List[float]]:
-        embeddings = []
-        for text in texts:
-            embeddings.append(super()._len_safe_get_embedding(text, self.embed_query))
-
-        return embeddings
+        pass
 
     def embed_query(self, query: str) -> List[float]:
         resp = self._get_embedding([query])
@@ -147,20 +105,7 @@ class OpenAIEmbedding(EmbeddingBase):
 
     @property
     def output_dim(self) -> int:
-        if self._model is None:
-            raise ValueError("Model not set")
-        if self._model == "text-embedding-ada-002":
-            return 1536
-        elif "ada" in self._model:
-            return 1024
-        elif "babbage" in self._model:
-            return 2048
-        elif "curie" in self._model:
-            return 4096
-        elif "davinci" in self._model:
-            return 12288
-        else:
-            raise ValueError("Unknown model")
+        pass
 
 
 class ManifestEmbedding(EmbeddingBase):
@@ -198,11 +143,7 @@ class ManifestEmbedding(EmbeddingBase):
         self._manifest = Manifest(**manifest_args)
 
     def embed(self, texts: List[str]) -> List[List[float]]:
-        embeddings = []
-        for text in texts:
-            embeddings.append(super()._len_safe_get_embedding(text, self.embed_query))
-
-        return embeddings
+        pass
 
     def embed_query(self, query: str) -> List[float]:
         resp = self._get_embedding([query])
@@ -214,5 +155,4 @@ class ManifestEmbedding(EmbeddingBase):
 
     @cached_property
     def output_dim(self) -> int:
-        embedding = self._get_embedding(["test"])
-        return len(embedding[0])
+        pass

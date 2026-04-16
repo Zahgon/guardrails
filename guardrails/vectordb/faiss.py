@@ -32,19 +32,13 @@ class Faiss(VectorDBBase):
     def new_flat_l2_index(
         cls, vector_dim: int, embedder: EmbeddingBase, path: Optional[str] = None
     ):
-        try:
-            import faiss
-        except ImportError:
-            raise ImportError(faiss_error)
-        return cls(faiss.IndexFlatL2(vector_dim), embedder, path)
+        pass
 
     @classmethod
     def new_flat_ip_index(
         cls, vector_dim: int, embedder: EmbeddingBase, path: Optional[str] = None
     ):
-        if faiss is None:
-            raise ImportError(faiss_error)
-        return cls(faiss.IndexFlatIP(vector_dim), embedder, path)
+        pass
 
     @classmethod
     def new_flat_l2_index_from_embedding(
@@ -53,11 +47,7 @@ class Faiss(VectorDBBase):
         embedder: EmbeddingBase,
         path: Optional[str] = None,
     ):
-        if faiss is None:
-            raise ImportError(faiss_error)
-        store = cls(faiss.IndexFlatL2(len(embedding[0])), embedder, path)
-        store.add_vectors(embedding)
-        return store
+        pass
 
     @classmethod
     def load(cls, path: str, embedder: EmbeddingBase):
@@ -68,8 +58,7 @@ class Faiss(VectorDBBase):
         return cls(index, embedder, path)
 
     def save(self, path: Optional[str] = None):
-        write_path = path if path else self._path
-        faiss.write_index(self._index, write_path)
+        pass
 
     def similarity_search_vector(self, vector: List[float], k: int) -> List[int]:
         import numpy as np
@@ -82,26 +71,10 @@ class Faiss(VectorDBBase):
     def similarity_search_vector_with_threshold(
         self, vector: List[float], k: int, threshold: float
     ) -> List[int]:
-        import numpy as np
-
-        # Call faiss range search and get all the vectors with a score >= threshold
-        # FIXME is this correct usage of `range_search`?
-        #  Arguments missing for parameters "radius", "result"
-        _, dist, indexes = self._index.range_search(np.array([vector]), threshold)  # type: ignore
-
-        if len(indexes) == 0:
-            return []
-
-        sorted_indices = np.argsort(dist)
-        sorted_indexes = indexes[sorted_indices]
-        return sorted_indexes.tolist()[:k]
+        pass
 
     def add_vectors(self, vectors: List[List[float]]) -> None:
-        import numpy as np
-
-        # FIXME is this correct usage of `add`?
-        #  Arguments missing for parameters "x"
-        self._index.add(np.array(vectors))  # type: ignore
+        pass
 
     def last_index(self) -> int:
-        return self._index.ntotal
+        pass

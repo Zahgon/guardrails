@@ -110,18 +110,7 @@ def sentence_split(text: str) -> t.List[str]:
 
 def read_pdf(path) -> str:
     """Reads the pdf at the given path."""
-    import pypdfium2 as pdfium
-
-    content = ""
-    pdf = pdfium.PdfDocument(path)
-    for i in range(len(pdf)):
-        page = pdf.get_page(i)
-        textpage = page.get_textpage()
-        content += textpage.get_text_range()
-        content += "\n"
-        [g.close() for g in (textpage, page)]
-    pdf.close()
-    return content.replace("\r", "")
+    pass
 
 
 def get_chunks_from_text(

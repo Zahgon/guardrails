@@ -46,16 +46,7 @@ I will give you a list of examples. Write a SQL query similar to the examples be
 def example_formatter(
     input: str, output: str, output_schema: Optional[Callable] = None
 ) -> str:
-    if output_schema is not None:
-        output = output_schema(output)
-
-    example = "\nINSTRUCTIONS:\n============\n"
-    example += f"{input}\n\n"
-
-    example += "SQL QUERY:\n================\n"
-    example += f"{output}\n\n"
-
-    return example
+    pass
 
 
 class Text2Sql:
@@ -135,24 +126,7 @@ class Text2Sql:
         ],
     ):
         # Initialize the Guard class
-        if rail_spec is None:
-            rail_spec = os.path.join(os.path.dirname(__file__), "text2sql.rail")
-            rail_params = {"conn_str": conn_str, "schema_file": schema_file}
-            if schema_file is None:
-                rail_params["schema_file"] = ""
-
-        # Load the rail specification.
-        with open(rail_spec, "r") as f:
-            rail_spec_str = f.read()
-
-        # Substitute the parameters in the rail specification.
-        if rail_params is not None:
-            rail_spec_str = Template(rail_spec_str).safe_substitute(**rail_params)
-
-        guard = Guard.for_rail_string(rail_spec_str)
-        guard._exec_opts.reask_messages = reask_messages
-
-        return guard
+        pass
 
     def _create_docstore_with_examples(
         self,
@@ -161,24 +135,11 @@ class Text2Sql:
         vector_db: Type[VectorDBBase],
         document_store: Type[DocumentStoreBase],
     ) -> Optional[DocumentStoreBase]:
-        if examples is None:
-            return None
-
-        """Add examples to the document store."""
-        e = embedding()
-        if vector_db == Faiss:
-            db = Faiss.new_flat_l2_index(e.output_dim, embedder=e)
-        else:
-            raise NotImplementedError(f"VectorDB {vector_db} is not implemented.")
-        store = document_store(db)
-        store.add_texts(
-            {example["question"]: {"ctx": example["query"]} for example in examples}
-        )
-        return store
+        pass
 
     @staticmethod
     def output_schema_formatter(output) -> str:
-        return json.dumps({"generated_sql": output}, indent=4)
+        pass
 
     def __call__(self, text: str) -> Optional[str]:
         """Run text2sql on a text query and return the SQL query."""

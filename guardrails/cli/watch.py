@@ -64,11 +64,11 @@ def _wait_for_logfile():
 
 
 def _print_fancy(log_msg: GuardTraceEntry):
-    rich.print(log_msg)
+    pass
 
 
 def _print_and_format_plain(log_msg: GuardTraceEntry) -> None:
-    print(json.dumps(asdict(log_msg)))
+    pass
 
 
 def _clear_and_quit():

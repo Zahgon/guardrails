@@ -38,10 +38,7 @@ from guardrails.utils.tokenization_utils import (
 ### functions to get chunks ###
 def split_sentence_str(chunk: str):
     """A naive sentence splitter that splits on periods."""
-    if "." not in chunk:
-        return []
-    fragments = chunk.split(".")
-    return [fragments[0] + ".", ".".join(fragments[1:])]
+    pass
 
 
 def split_sentence_word_tokenizers_jl_separator(
@@ -61,30 +58,7 @@ def split_sentence_word_tokenizers_jl_separator(
         List[str]: A list of two strings. The first string is the first sentence
             in the chunk. The second string is the remaining text in the chunk.
     """
-    # using the sentence tokenizer is expensive
-    # we check for a . to avoid wastefully calling the tokenizer
-
-    # check at least 3 characters have been accumulated before splitting
-    third_chunk = safe_get(chunk, 2)
-    is_minimum_length = third_chunk is not None
-
-    # check for potential line endings, which is what split_sentences does
-    chunk_with_potential_line_endings, count = re.subn(
-        r"([?!.])(?=\s|$)", rf"\1{separator}", chunk
-    )
-    any_potential_line_endings = count > 0
-    if not is_minimum_length or not any_potential_line_endings:
-        return []
-
-    sentences = postproc_splits(chunk_with_potential_line_endings, separator)
-    sentences = re.split(rf"\n?{separator} ?\n?", sentences)
-    # if not more than one sentence, we haven't accumulated enough for a validation
-    if len(sentences) <= 1:
-        return []
-
-    # return the sentence
-    # then the remaining chunks that aren't finished accumulating
-    return [sentences[0], "".join(sentences[1:])]
+    pass
 
 
 # TODO: Can we remove dataclass? It was originally added to support pydantic 1.*
@@ -163,15 +137,7 @@ class Validator:
 
     def _set_on_fail_method(self, on_fail: Callable[[Any, FailResult], Any]):
         """Set the on_fail method for the validator."""
-        on_fail_args = inspect.getfullargspec(on_fail)
-        second_arg = safe_get(on_fail_args.args, 1)
-        if second_arg is None:
-            raise ValueError(
-                "The on_fail method must take two arguments: "
-                "the value being validated and the FailResult."
-            )
-
-        self.on_fail_method = on_fail
+        pass
 
     def _validate(self, value: Any, metadata: Dict[str, Any]) -> ValidationResult:
         """User implementable function.
@@ -237,19 +203,7 @@ class Validator:
         Returns:
             Any: Returns the output from the ML model inference.
         """
-        # Only use if both are set, otherwise fall back to local inference
-        if self.use_local:
-            logger.debug(f" ==> {self.rail_alias} is using local inference.")
-            return self._inference_local(model_input)
-        if not self.use_local and self.validation_endpoint:
-            logger.debug(f" ==> {self.rail_alias} is using remote inference.")
-            return self._inference_remote(model_input)
-
-        raise RuntimeError(
-            "No inference endpoint set, but use_local was false. "
-            "Please set either use_local=True or "
-            "set an validation_endpoint to perform inference in the validator."
-        )
+        pass
 
     def _chunking_function(self, chunk: str) -> List[str]:
         """The strategy used for chunking accumulated text input into
@@ -261,7 +215,7 @@ class Validator:
         Returns:
             list[str]: The text chunked into some subset.
         """
-        return split_sentence_word_tokenizers_jl_separator(chunk)
+        pass
 
     def validate_stream(
         self,
@@ -285,69 +239,12 @@ class Validator:
         Otherwise, the validator will validate the chunk and return the
         result.
         """
-        # combine accumulated chunks and new [:-1]chunk
-        accumulated_chunks = self.accumulated_chunks
-
-        # if context_vars is passed, use it to get the accumulated chunks
-        context_var: Optional[ContextVar[List[str]]] = None
-        ctx_var_map: Optional[Dict[str, ContextVar[List[str]]]] = None
-        context_key = f"{property_path}_{self.rail_alias}"
-        if context_vars and context:
-            ctx_var_map = context.run(context_vars.get)
-            context_var = ctx_var_map.get(context_key)
-            if context_var:
-                accumulated_chunks = context.run(context_var.get)
-
-        accumulated_chunks.append(chunk)
-        accumulated_text = "".join(accumulated_chunks)
-        # check if enough chunks have accumulated for validation
-        split_contents = self._chunking_function(accumulated_text)
-
-        # if remainder kwargs is passed, validate remainder regardless
-        remainder = kwargs.get("remainder", False)
-        if remainder:
-            split_contents = [accumulated_text, ""]
-        # if no chunks are returned, we haven't accumulated enough
-        if len(split_contents) == 0:
-            if context_vars and context_var and context and ctx_var_map:
-                context.run(context_var.set, accumulated_chunks)
-                ctx_var_map[context_key] = context_var
-                context.run(context_vars.set, ctx_var_map)
-            else:
-                self.accumulated_chunks = accumulated_chunks
-            return None
-        [chunk_to_validate, new_accumulated_chunks] = split_contents
-        if context_vars and context_var and context and ctx_var_map:
-            context.run(context_var.set, [new_accumulated_chunks])
-            ctx_var_map[context_key] = context_var
-            context.run(context_vars.set, ctx_var_map)
-        else:
-            self.accumulated_chunks = [new_accumulated_chunks]
-        # exclude last chunk, because it may not be a complete chunk
-        validation_result = self.validate(chunk_to_validate, metadata)
-        # if validate doesn't set validated chunk, we set it
-        if validation_result.validated_chunk is None:
-            validation_result.validated_chunk = chunk_to_validate
-        if isinstance(validation_result, FailResult):
-            if validation_result.error_spans is None:
-                validation_result.error_spans = [
-                    ErrorSpan(
-                        start=0,
-                        end=len(chunk_to_validate),
-                        reason="The input failed validation.",
-                    )
-                ]
-
-        return validation_result
+        pass
 
     async def async_validate_stream(
         self, chunk: Any, metadata: Dict[str, Any], **kwargs
     ) -> Optional[ValidationResult]:
-        loop = asyncio.get_event_loop()
-        validate_stream_partial = partial(
-            self.validate_stream, chunk, metadata, **kwargs
-        )
-        return await loop.run_in_executor(None, validate_stream_partial)
+        pass
 
     def _hub_inference_request(
         self, request_body: Union[dict, str], validation_endpoint: str
@@ -368,23 +265,7 @@ class Validator:
         Returns:
             Any: Post request response from the ML based validation model.
         """
-        hub_jwt_token = get_jwt_token(settings.rc)
-        headers = {
-            "Authorization": f"Bearer {hub_jwt_token}",
-            "Content-Type": "application/json",
-        }
-        req = requests.post(validation_endpoint, data=request_body, headers=headers)
-        if not req.ok:
-            if req.status_code == 401:
-                raise Exception(
-                    "401: Remote Inference Unauthorized. Please run "
-                    "`guardrails configure`. You can find a new"
-                    " token at https://guardrailsai.com/hub/keys"
-                )
-            else:
-                logging.error(req.status_code)
-
-        return req.json()
+        pass
 
     def to_prompt(self, with_keywords: bool = True) -> str:
         """Convert the validator to a prompt.
@@ -414,22 +295,7 @@ class Validator:
     # TODO: Is this still used anywhere?
     def to_xml_attrib(self):
         """Convert the validator to an XML attribute."""
-
-        if not len(self._kwargs):
-            return self.rail_alias
-
-        validator_args = []
-        init_args = inspect.getfullargspec(self.__init__)
-        for arg in init_args.args[1:]:
-            if arg not in ("on_fail", "args", "kwargs"):
-                arg_value = self._kwargs.get(arg)
-                str_arg = str(arg_value)
-                if str_arg is not None:
-                    str_arg = "{" + str_arg + "}" if " " in str_arg else str_arg
-                    validator_args.append(str_arg)
-
-        params = " ".join(validator_args)
-        return f"{self.rail_alias}: {params}"
+        pass
 
     def get_args(self):
         """Get the arguments for the validator."""
@@ -496,15 +362,10 @@ class Validator:
 
     def with_metadata(self, metadata: Dict[str, Any]):
         """Assigns metadata to this validator to use during validation."""
-        self._metadata = metadata
-        return self
+        pass
 
     def to_runnable(self) -> Runnable:
-        from guardrails.integrations.langchain.validator_runnable import (
-            ValidatorRunnable,
-        )
-
-        return ValidatorRunnable(self)
+        pass
 
 
 V = TypeVar("V", bound=Validator, covariant=True)
@@ -514,7 +375,7 @@ types_to_validators = defaultdict(list)
 
 def validator_factory(name: str, validate: Callable) -> Type[Validator]:
     def validate_wrapper(self, *args, **kwargs):
-        return validate(*args, **kwargs)
+        pass
 
     validator = type(
         name,
@@ -543,26 +404,7 @@ def register_validator(
         cls_or_func: Union[Type[V], Callable],
     ) -> Union[Type[V], Type[Validator]]:
         """Register a validator for a data type."""
-        if isinstance(cls_or_func, type) and issubclass(cls_or_func, Validator):
-            cls = cls_or_func
-            cls.rail_alias = name
-        elif callable(cls_or_func) and not isinstance(cls_or_func, type):
-            func = cls_or_func
-            func.rail_alias = name  # type: ignore
-            # ensure function takes two args
-            if not func.__code__.co_argcount == 2:
-                raise ValueError(
-                    f"Validator function {func.__name__} must take two arguments."
-                )
-            # dynamically create Validator subclass with `validate` method as `func`
-            cls = validator_factory(name, func)
-        else:
-            raise ValueError(
-                "Only functions and Validator subclasses "
-                "can be registered as validators."
-            )
-        validators_registry[name] = cls
-        return cls
+        pass
 
     return decorator
 

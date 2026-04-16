@@ -22,4 +22,4 @@ class GuardTraceEntry:
 
     @property
     def timedelta(self):
-        return self.end_time - self.start_time
+        pass

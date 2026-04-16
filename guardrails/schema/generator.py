@@ -30,8 +30,7 @@ def is_number(value: Any) -> bool:
 
 
 def gen_sentence_case():
-    words = " ".join(fake.words(2))
-    return upper_first(words)
+    pass
 
 
 def gen_snake_case():

@@ -270,26 +270,7 @@ class AsyncValidatorService(ValidatorServiceBase):
         **kwargs,
     ) -> list[ValidatorRun]:
         # Then validate the parent value
-        validators = validator_map.get(reference_path, [])
-        coroutines: List[Coroutine[Any, Any, ValidatorRun]] = []
-
-        for validator in validators:
-            coroutines.append(
-                self.run_validator(
-                    iteration,
-                    validator,
-                    value,
-                    metadata,
-                    absolute_path,
-                    stream=stream,
-                    reference_path=reference_path,
-                    **kwargs,
-                )
-            )
-
-        results = await asyncio.gather(*coroutines)
-
-        return results
+        pass
 
     async def async_validate(
         self,

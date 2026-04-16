@@ -37,36 +37,4 @@ def install_cli(
         False, "--upgrade", help="Upgrade the package to the latest version."
     ),
 ):
-    try:
-        if isinstance(package_uris, str):
-            logger.error(
-                f"`install` in {__file__} was called with a string instead of "
-                "a list! This can happen if it is invoked directly instead of "
-                "being run via the CLI. Did you mean to import `from guardrails import "
-                "install` instead?  Recovering..."
-            )
-            package_uris = [
-                package_uris,
-            ]
-
-        from guardrails.hub.install import install_multiple
-
-        def confirm():
-            return typer.confirm(
-                "This validator has a Guardrails AI inference endpoint available. "
-                "Would you still like to install the"
-                " local models for local inference?",
-            )
-
-        version_warnings_if_applicable(console)
-
-        install_multiple(
-            package_uris,
-            install_local_models=local_models,
-            quiet=quiet,
-            upgrade=upgrade,
-            install_local_models_confirm=confirm,
-        )
-    except Exception as e:
-        logger.error(str(e))
-        sys.exit(1)
+    pass

@@ -60,36 +60,21 @@ class Outputs(ArbitraryModel):
     def deserialize_validation_response(
         cls, validation_response: Any | None
     ) -> str | ReAsk | List | Dict | None:
-        if isinstance(validation_response, ReAsk):
-            return validation_response
-        if validation_response and isinstance(validation_response, dict):
-            try:
-                return to_reask(validation_response)
-            except ValidationError:
-                return validation_response
-        return validation_response
+        pass
 
     @field_validator("reasks", mode="before")
     @classmethod
     def deserialize_reasks(cls, reasks: Any) -> List[ReAsk]:
-        if reasks and isinstance(reasks, list):
-            return [to_reask(r) if not isinstance(r, ReAsk) else r for r in reasks]
-        return []
+        pass
 
     @field_serializer("exception")
     def serialize_exception(self, exception: Exception | None) -> str | None:
-        if exception:
-            return str(exception)
-        return None
+        pass
 
     @field_validator("exception", mode="before")
     @classmethod
     def deserialize_exception(cls, exception: Any) -> Exception | None:
-        if isinstance(exception, Exception):
-            return exception
-        if exception and isinstance(exception, str):
-            return Exception(exception)
-        return None
+        pass
 
     def _all_empty(self) -> bool:
         return (
@@ -105,15 +90,7 @@ class Outputs(ArbitraryModel):
     @property
     def failed_validations(self) -> List[ValidatorLogs]:
         """Returns the validator logs for any validation that failed."""
-        return list(
-            [
-                log
-                for log in self.validator_logs
-                if log.validation_result is not None
-                and isinstance(log.validation_result, ValidationResult)
-                and log.validation_result.outcome == Outcome.FAIL
-            ]
-        )
+        pass
 
     @property
     def error_spans_in_output(self) -> List[ErrorSpan]:
@@ -121,32 +98,7 @@ class Outputs(ArbitraryModel):
 
         These indices are relative to the complete LLM output.
         """
-        # map of total length to validator
-        total_len_by_validator = {}
-        spans_in_output = []
-        for log in self.validator_logs:
-            validator_name = log.validator_name
-            if total_len_by_validator.get(validator_name) is None:
-                total_len_by_validator[validator_name] = 0
-            result = log.validation_result
-            if isinstance(result, FailResult):
-                if result.error_spans is not None:
-                    for error_span in result.error_spans:
-                        spans_in_output.append(
-                            ErrorSpan(
-                                start=error_span.start
-                                + total_len_by_validator[validator_name],
-                                end=error_span.end
-                                + total_len_by_validator[validator_name],
-                                reason=error_span.reason,
-                            )
-                        )
-            if isinstance(result, ValidationResult):
-                if result and result.validated_chunk is not None:
-                    total_len_by_validator[validator_name] += len(
-                        result.validated_chunk
-                    )
-        return spans_in_output
+        pass
 
     @property
     def status(self) -> str:
@@ -176,7 +128,7 @@ class Outputs(ArbitraryModel):
 
     @deprecated("Use Outputs.model_dump() instead.")
     def to_interface(self) -> dict[str, Any]:
-        return self.model_dump(exclude_none=True, by_alias=True)
+        pass
 
     @deprecated("Use Outputs.model_dump() instead.")
     def to_dict(self) -> Dict[str, Any]:
@@ -185,7 +137,7 @@ class Outputs(ArbitraryModel):
     @classmethod
     @deprecated("Use Outputs.model_validate() instead.")
     def from_interface(cls, i_outputs: Any) -> "Outputs":
-        return cls.model_validate(i_outputs)
+        pass
 
     @classmethod
     @deprecated("Use Outputs.model_validate() instead.")

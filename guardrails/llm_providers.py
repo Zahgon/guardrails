@@ -39,9 +39,7 @@ from guardrails.utils.prompt_utils import messages_to_prompt_string
 
 def nonchat_prompt(prompt: str, instructions: Optional[str] = None) -> str:
     """Prepare final prompt for nonchat engine."""
-    if instructions:
-        prompt = "\n\n".join([instructions, prompt])
-    return prompt
+    pass
 
 
 def chat_prompt(
@@ -72,17 +70,7 @@ def litellm_messages(
     messages: Optional[List[Dict]] = None,
 ) -> List[Dict[str, str]]:
     """Prepare messages for LiteLLM."""
-    if messages:
-        return messages
-    if prompt is None:
-        raise PromptCallableException(
-            "Either `text` or `messages` required for `guard.__call__`."
-        )
-
-    if instructions:
-        prompt = "\n\n".join([instructions, prompt])
-
-    return [{"role": "user", "content": prompt}]
+    pass
 
 
 class ManifestCallable(PromptCallableBase):
@@ -105,41 +93,7 @@ class ManifestCallable(PromptCallableBase):
             ...
         ```
         """
-        try:
-            import manifest  # noqa: F401 # type: ignore
-        except ImportError:
-            raise PromptCallableException(
-                "The `manifest` package is not installed. "
-                "Install with `poetry add manifest-ml`"
-            )
-        client = cast(manifest.Manifest, client)
-        prompt = nonchat_prompt(prompt=text, instructions=instructions)
-        trace_operation(
-            input_mime_type="application/json",
-            input_value={
-                **kwargs,
-                "prompt": prompt,
-                "args": args,
-            },
-        )
-
-        trace_llm_call(
-            input_messages=chat_prompt(text, instructions),
-            invocation_parameters={
-                **kwargs,
-                "prompt": prompt,
-            },
-        )
-        manifest_response = client.run(prompt, *args, **kwargs)
-        trace_operation(
-            output_mime_type="application/json", output_value=manifest_response
-        )
-        trace_llm_call(
-            output_messages=[{"role": "assistant", "content": manifest_response}]
-        )
-        return LLMResponse(
-            output=manifest_response,
-        )
+        pass
 
 
 class LiteLLMCallable(PromptCallableBase):
@@ -166,94 +120,7 @@ class LiteLLMCallable(PromptCallableBase):
         )
         ```
         """
-        try:
-            from litellm import completion  # type: ignore
-        except ImportError as e:
-            raise PromptCallableException(
-                "The `litellm` package is not installed. "
-                "Install with `pip install litellm`"
-            ) from e
-        if messages is not None:
-            messages = litellm_messages(prompt=text, messages=messages)
-            kwargs["messages"] = messages
-
-        trace_operation(
-            input_mime_type="application/json",
-            input_value={
-                **kwargs,
-                "model": model,
-                "args": args,
-            },
-        )
-
-        function_calling_tools = [
-            tool.get("function")
-            for tool in kwargs.get("tools", [])
-            if isinstance(tool, Dict) and tool.get("type") == "function"
-        ]
-        trace_llm_call(
-            input_messages=kwargs.get("messages"),
-            invocation_parameters={
-                **kwargs,
-                "model": model,
-            },
-            function_call=kwargs.get(
-                "function_call", safe_get(function_calling_tools, 0)
-            ),
-        )
-
-        # these are gr only and should not be getting passed to llms
-        kwargs.pop("reask_messages", None)
-
-        response = completion(
-            model=model,
-            *args,
-            **kwargs,
-        )
-
-        if kwargs.get("stream", False):
-            # If stream is defined and set to True,
-            # the callable returns a generator object
-            llm_response = cast(Iterator[str], response)
-            return LLMResponse(
-                output="",
-                # FIXME: Why is this different from the async streaming implementation?
-                streamOutput=llm_response,
-            )
-
-        trace_operation(output_mime_type="application/json", output_value=response)
-        if response.choices[0].message.content is not None:  # type: ignore
-            output = response.choices[0].message.content  # type: ignore
-        else:
-            try:
-                output = response.choices[0].message.function_call.arguments  # type: ignore
-            except AttributeError:
-                try:
-                    choice = response.choices[0]  # type: ignore
-                    output = choice.message.tool_calls[-1].function.arguments  # type: ignore
-                except AttributeError as ae_tools:
-                    raise ValueError(
-                        "No message content or function"
-                        " call arguments returned from OpenAI"
-                    ) from ae_tools
-
-        completion_tokens = response.usage.completion_tokens  # type: ignore
-        prompt_tokens = response.usage.prompt_tokens  # type: ignore
-        total_tokens = None
-        if completion_tokens or prompt_tokens:
-            total_tokens = (completion_tokens or 0) + (prompt_tokens or 0)
-
-        trace_llm_call(
-            output_messages=[choice.message for choice in response.choices],  # type: ignore
-            token_count_completion=completion_tokens,  # type: ignore
-            token_count_prompt=prompt_tokens,  # type: ignore
-            token_count_total=total_tokens,  # type: ignore
-        )
-        return LLMResponse(
-            output=output,  # type: ignore
-            prompt_token_count=prompt_tokens,  # type: ignore
-            response_token_count=completion_tokens,  # type: ignore
-        )
+        pass
 
 
 class HuggingFaceModelCallable(PromptCallableBase):
@@ -266,99 +133,7 @@ class HuggingFaceModelCallable(PromptCallableBase):
         ],
         **kwargs,
     ) -> LLMResponse:
-        try:
-            import transformers  # noqa: F401 # type: ignore
-        except ImportError:
-            raise PromptCallableException(
-                "The `transformers` package is not installed. "
-                "Install with `pip install transformers`"
-            )
-        try:
-            import torch
-        except ImportError:
-            raise PromptCallableException(
-                "The `torch` package is not installed. Install with `pip install torch`"
-            )
-        prompt = messages_to_prompt_string(messages)
-        tokenizer = kwargs.pop("tokenizer")
-        if not tokenizer:
-            raise UserFacingException(
-                ValueError(
-                    "'tokenizer' must be provided in order to use Hugging Face models!"
-                )
-            )
-
-        torch_device = "cuda" if torch.cuda.is_available() else "cpu"
-
-        return_tensors = kwargs.pop("return_tensors", "pt")
-        skip_special_tokens = kwargs.pop("skip_special_tokens", True)
-
-        input_ids = kwargs.pop("input_ids", None)
-        input_values = kwargs.pop("input_values", None)
-        input_features = kwargs.pop("input_features", None)
-        pixel_values = kwargs.pop("pixel_values", None)
-        model_inputs = kwargs.pop("model_inputs", {})
-        if (
-            input_ids is None
-            and input_values is None
-            and input_features is None
-            and pixel_values is None
-            and not model_inputs
-        ):
-            model_inputs = tokenizer(prompt, return_tensors=return_tensors).to(
-                torch_device
-            )
-        else:
-            model_inputs["input_ids"] = input_ids
-            model_inputs["input_values"] = input_values
-            model_inputs["input_features"] = input_features
-            model_inputs["pixel_values"] = pixel_values
-
-        do_sample = kwargs.pop("do_sample", None)
-        temperature = kwargs.pop("temperature", None)
-        if not do_sample and temperature == 0:
-            temperature = None
-
-        model_inputs["do_sample"] = do_sample
-        model_inputs["temperature"] = temperature
-
-        trace_operation(
-            input_mime_type="application/json",
-            input_value={
-                **model_inputs,
-                **kwargs,
-            },
-        )
-
-        trace_llm_call(
-            input_messages=messages,
-            invocation_parameters={
-                **model_inputs,
-                **kwargs,
-            },
-        )
-
-        output = model_generate(
-            **model_inputs,
-            **kwargs,
-        )
-
-        trace_operation(output_mime_type="application/json", output_value=output)
-
-        # NOTE: This is currently restricted to single outputs
-        # Should we choose to support multiple return sequences,
-        # We would need to either validate all of them
-        # and choose the one with the least failures,
-        # or accept a selection function
-        decoded_output = tokenizer.decode(
-            output[0], skip_special_tokens=skip_special_tokens
-        )
-
-        trace_llm_call(
-            output_messages=[{"role": "assistant", "content": decoded_output}]
-        )
-
-        return LLMResponse(output=decoded_output)
+        pass
 
 
 class HuggingFacePipelineCallable(PromptCallableBase):
@@ -371,64 +146,7 @@ class HuggingFacePipelineCallable(PromptCallableBase):
         ],
         **kwargs,
     ) -> LLMResponse:
-        try:
-            import transformers  # noqa: F401 # type: ignore
-        except ImportError:
-            raise PromptCallableException(
-                "The `transformers` package is not installed. "
-                "Install with `pip install transformers`"
-            )
-        try:
-            import torch  # noqa: F401 # type: ignore
-        except ImportError:
-            raise PromptCallableException(
-                "The `torch` package is not installed. Install with `pip install torch`"
-            )
-
-        content_key = kwargs.pop("content_key", "generated_text")
-
-        temperature = kwargs.pop("temperature", None)
-        if temperature == 0:
-            temperature = None
-        prompt = messages_to_prompt_string(messages)
-        trace_operation(
-            input_mime_type="application/json",
-            input_value={
-                **kwargs,
-                "prompt": prompt,
-                "temperature": temperature,
-                "args": args,
-            },
-        )
-
-        trace_llm_call(
-            input_messages=chat_prompt(prompt, kwargs.get("instructions")),
-            invocation_parameters={
-                **kwargs,
-                "prompt": prompt,
-                "temperature": temperature,
-            },
-        )
-
-        output = pipeline(
-            prompt,
-            temperature=temperature,
-            *args,
-            **kwargs,
-        )
-
-        trace_operation(output_mime_type="application/json", output_value=output)
-
-        # NOTE: This is currently restricted to single outputs
-        # Should we choose to support multiple return sequences,
-        # We would need to either validate all of them
-        # and choose the one with the least failures,
-        # or accept a selection function
-        content = safe_get(output[0], content_key)
-
-        trace_llm_call(output_messages=[{"role": "assistant", "content": content}])
-
-        return LLMResponse(output=content)
+        pass
 
 
 class ArbitraryCallable(PromptCallableBase):
@@ -459,47 +177,7 @@ class ArbitraryCallable(PromptCallableBase):
         )
         ```
         """
-
-        trace_operation(
-            input_mime_type="application/json",
-            input_value={
-                **kwargs,
-                "args": args,
-            },
-        )
-
-        trace_llm_call(
-            input_messages=chat_prompt(
-                kwargs.get("prompt", ""), kwargs.get("instructions")
-            ),
-            invocation_parameters={
-                **kwargs,
-            },
-        )
-
-        # Get the response from the callable
-        # The LLM response should either be a
-        # string or an generator object of strings
-        llm_response = self.llm_api(*args, **kwargs)  # type: ignore
-
-        # Check if kwargs stream is passed in
-        if kwargs.get("stream", False):
-            # If stream is defined and set to True,
-            # the callable returns a generator object
-            llm_response = cast(Iterator[str], llm_response)
-            return LLMResponse(
-                output="",
-                # FIXME: Why is this different from the async streaming implementation?
-                streamOutput=llm_response,
-            )
-
-        trace_operation(output_mime_type="application/json", output_value=llm_response)
-        trace_llm_call(output_messages=[{"role": "assistant", "content": llm_response}])
-        # Else, the callable returns a string
-        llm_response = cast(str, llm_response)
-        return LLMResponse(
-            output=llm_response,
-        )
+        pass
 
 
 def get_llm_ask(
@@ -643,93 +321,7 @@ class AsyncLiteLLMCallable(AsyncPromptCallableBase):
         )
         ```
         """
-        try:
-            from litellm import acompletion, CustomStreamWrapper  # type: ignore
-        except ImportError as e:
-            raise PromptCallableException(
-                "The `litellm` package is not installed. "
-                "Install with `pip install litellm`"
-            ) from e
-
-        if text is not None or instructions is not None or messages is not None:
-            messages = litellm_messages(
-                prompt=text,
-                instructions=instructions,
-                messages=messages,
-            )
-            kwargs["messages"] = messages
-
-        trace_operation(
-            input_mime_type="application/json",
-            input_value={
-                **kwargs,
-                "args": args,
-            },
-        )
-
-        function_calling_tools = [
-            tool.get("function")
-            for tool in kwargs.get("tools", [])
-            if isinstance(tool, Dict) and tool.get("type") == "function"
-        ]
-        trace_llm_call(
-            input_messages=kwargs.get("messages"),
-            invocation_parameters={**kwargs},
-            function_call=kwargs.get(
-                "function_call", safe_get(function_calling_tools, 0)
-            ),
-        )
-
-        # these are gr only and should not be getting passed to llms
-        kwargs.pop("reask_messages", None)
-
-        response = await acompletion(
-            *args,
-            **kwargs,
-        )
-
-        if kwargs.get("stream", False):
-            completion_stream = cast(CustomStreamWrapper, response)
-            # If stream is defined and set to True,
-            # the callable returns a generator object
-            # response = cast(AsyncIterator[str], response)
-            return LLMResponse(
-                output="",
-                asyncStreamOutput=completion_stream,
-            )
-
-        trace_operation(output_mime_type="application/json", output_value=response)
-        if response.choices[0].message.content is not None:  # type: ignore
-            output = response.choices[0].message.content  # type: ignore
-        else:
-            try:
-                output = response.choices[0].message.function_call.arguments  # type: ignore
-            except AttributeError:
-                try:
-                    choice = response.choices[0]  # type: ignore
-                    output = choice.message.tool_calls[-1].function.arguments  # type: ignore
-                except AttributeError as ae_tools:
-                    raise ValueError(
-                        "No message content or function"
-                        " call arguments returned from OpenAI"
-                    ) from ae_tools
-
-        completion_tokens = response.usage.completion_tokens  # type: ignore
-        prompt_tokens = response.usage.prompt_tokens  # type: ignore
-        total_tokens = None
-        if completion_tokens or prompt_tokens:
-            total_tokens = (completion_tokens or 0) + (prompt_tokens or 0)
-        trace_llm_call(
-            output_messages=[choice.message for choice in response.choices],  # type: ignore
-            token_count_completion=completion_tokens,  # type: ignore
-            token_count_prompt=prompt_tokens,  # type: ignore
-            token_count_total=total_tokens,  # type: ignore
-        )
-        return LLMResponse(
-            output=output,  # type: ignore
-            prompt_token_count=prompt_tokens,  # type: ignore
-            response_token_count=completion_tokens,  # type: ignore
-        )
+        pass
 
 
 class AsyncManifestCallable(AsyncPromptCallableBase):
@@ -752,52 +344,7 @@ class AsyncManifestCallable(AsyncPromptCallableBase):
             ...
         ```
         """
-        try:
-            import manifest  # noqa: F401 # type: ignore
-        except ImportError:
-            raise PromptCallableException(
-                "The `manifest` package is not installed. "
-                "Install with `poetry add manifest-ml`"
-            )
-
-        prompts = [nonchat_prompt(prompt=text, instructions=instructions)]
-
-        trace_operation(
-            input_mime_type="application/json",
-            input_value={
-                **kwargs,
-                "prompts": prompts,
-                "args": args,
-            },
-        )
-
-        trace_llm_call(
-            input_messages=chat_prompt(text, instructions),
-            invocation_parameters={
-                **kwargs,
-                "prompts": prompts,
-            },
-        )
-
-        client = cast(manifest.Manifest, client)
-        manifest_response = await client.arun_batch(
-            prompts=prompts,
-            *args,
-            **kwargs,
-        )
-        if kwargs.get("stream", False):
-            raise NotImplementedError(
-                "Manifest async streaming is not yet supported by manifest."
-            )
-        trace_operation(
-            output_mime_type="application/json", output_value=manifest_response
-        )
-        trace_llm_call(
-            output_messages=[{"role": "assistant", "content": manifest_response[0]}]
-        )
-        return LLMResponse(
-            output=manifest_response[0],
-        )
+        pass
 
 
 class AsyncArbitraryCallable(AsyncPromptCallableBase):
@@ -828,41 +375,7 @@ class AsyncArbitraryCallable(AsyncPromptCallableBase):
         )
         ```
         """
-
-        trace_operation(
-            input_mime_type="application/json",
-            input_value={
-                **kwargs,
-                "args": args,
-            },
-        )
-
-        trace_llm_call(
-            input_messages=chat_prompt(
-                kwargs.get("prompt", ""), kwargs.get("instructions")
-            ),
-            invocation_parameters={
-                **kwargs,
-            },
-        )
-
-        output = await self.llm_api(*args, **kwargs)
-        if kwargs.get("stream", False):
-            # If stream is defined and set to True,
-            # the callable returns a generator object
-            return LLMResponse(
-                output="",
-                # FIXME: Why is this different from the synchronous streaming implementation?  ## noqa: E501
-                # This shouldn't be necessary: https://docs.litellm.ai/docs/completion/stream#async-streaming
-                asyncStreamOutput=output.completion_stream,
-            )
-
-        trace_operation(output_mime_type="application/json", output_value=output)
-        trace_llm_call(output_messages=[{"role": "assistant", "content": output}])
-
-        return LLMResponse(
-            output=output,
-        )
+        pass
 
 
 def get_async_llm_ask(

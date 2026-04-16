@@ -18,10 +18,4 @@ class Prompt(BasePrompt):
 
     def format(self, **kwargs) -> "Prompt":
         """Format the prompt using the given keyword arguments."""
-        # Only use the keyword arguments that are present in the prompt.
-        vars = get_template_variables(self.source)
-        filtered_kwargs = {k: v for k, v in kwargs.items() if k in vars}
-
-        # Return another instance of the class with the formatted prompt.
-        formatted_prompt = Template(self.source).safe_substitute(**filtered_kwargs)
-        return Prompt(formatted_prompt)
+        pass

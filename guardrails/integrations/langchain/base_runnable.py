@@ -16,24 +16,10 @@ class BaseRunnable(Runnable):
         config: Optional[RunnableConfig] = None,
         **kwargs: Any,
     ) -> InputType:
-        return self._call_with_config(
-            self._process_input, input, config, run_type="parser", **kwargs
-        )
+        pass
 
     def _process_input(self, input: InputType) -> InputType:
-        str_input = str(input.content) if isinstance(input, BaseMessage) else str(input)
-
-        validated_output = self._validate(str_input)
-
-        if isinstance(validated_output, Dict):
-            validated_output = json.dumps(validated_output)
-
-        if isinstance(input, BaseMessage):
-            output = deepcopy(input)
-            output.content = validated_output
-            return cast(InputType, output)
-
-        return cast(InputType, validated_output)
+        pass
 
     def _validate(self, input: str) -> OT:
         raise NotImplementedError

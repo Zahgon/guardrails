@@ -60,34 +60,8 @@ class Messages:
         **kwargs,
     ):
         """Format the messages using the given keyword arguments."""
-        formatted_messages = []
-        for message in self.source:
-            if isinstance(message["content"], str):
-                msg_str = message["content"]
-            else:
-                msg_str = message["content"]._source
-            # Only use the keyword arguments that are present in the message.
-            vars = get_template_variables(msg_str)
-            filtered_kwargs = {k: v for k, v in kwargs.items() if k in vars}
-
-            # Return another instance of the class with the formatted message.
-            formatted_message = Template(msg_str).safe_substitute(**filtered_kwargs)
-            formatted_messages.append(
-                {"role": message["role"], "content": formatted_message}
-            )
-        return Messages(formatted_messages)
+        pass
 
     def substitute_constants(self, text):
         """Substitute constants in the prompt."""
-        # Substitute constants by reading the constants file.
-        # Regex to extract all occurrences of ${gr.<constant_name>}
-        matches = re.findall(r"\${gr\.(\w+)}", text)
-
-        # Substitute all occurrences of ${gr.<constant_name>}
-        #   with the value of the constant.
-        for match in matches:
-            template = NamespaceTemplate(text)
-            mapping = {f"gr.{match}": constants[match]}
-            text = template.safe_substitute(**mapping)
-
-        return text
+        pass

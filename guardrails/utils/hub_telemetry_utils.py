@@ -60,43 +60,7 @@ class HubTelemetry:
         enabled: Optional[bool] = None,
     ):
         """Initializes a tracer for Guardrails Hub."""
-        if enabled is None:
-            enabled = settings.rc.enable_metrics or False
-        self._enabled = enabled
-        self._carrier = {}
-        self._service_name = service_name
-        # self._endpoint = "http://localhost:5318/v1/traces"
-        self._endpoint = (
-            "https://hty0gc1ok3.execute-api.us-east-1.amazonaws.com/v1/traces"
-        )
-        self._tracer_name = tracer_name
-
-        # Create a resource
-        # Service name is required for most backends
-        attributes = {
-            SERVICE_NAME: self._service_name,
-            SERVICE_VERSION: GUARDRAILS_VERSION,
-            DEPLOYMENT_ENVIRONMENT: "production",
-        }
-        self._resource = Resource(attributes=attributes)
-
-        # Create a tracer provider and a processor
-        self._tracer_provider = TracerProvider(resource=self._resource)
-
-        if export_locally:
-            self._processor = BatchSpanProcessor(ConsoleSpanExporter())
-        else:
-            self._processor = BatchSpanProcessor(
-                OTLPSpanExporter(endpoint=self._endpoint)
-            )
-
-        # Add the processor to the provider
-        self._tracer_provider.add_span_processor(self._processor)
-
-        # Set the tracer provider and return a tracer
-        self._tracer = self._tracer_provider.get_tracer(self._tracer_name)
-
-        self._prop = TraceContextTextMapPropagator()
+        pass
 
     def inject_current_context(self, context=None) -> None:
         """Injects the current context into the carrier."""

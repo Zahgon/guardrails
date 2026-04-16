@@ -36,67 +36,18 @@ class GuardrailsChatEngine(BaseChatEngine):
 
     @property
     def guard(self) -> Guard:
-        return self._guard
+        pass
 
     def engine_api(self, *, messages: List[Dict[str, str]], **kwargs) -> str:
-        query = messages[0]["content"]
-        chat_history = kwargs.get("chat_history", [])
-        response = self._engine.chat(query, chat_history)
-
-        self._engine_response = response
-        return str(response)
+        pass
 
     def chat(
         self, message: str, chat_history: Optional[List["ChatMessage"]] = None
     ) -> AGENT_CHAT_RESPONSE_TYPE:
-        if chat_history is None:
-            chat_history = []
-        try:
-            messages = [
-                {
-                    "role": "user",
-                    "content": message,
-                }
-            ]
-            validated_output = self.guard(
-                llm_api=self.engine_api,
-                messages=messages,
-                chat_history=chat_history,
-                **self._guard_kwargs,
-            )
-            response = self._create_chat_response(validated_output)
-            if response is None:
-                raise ValueError("Failed to create a valid chat response")
-
-            return response
-        except ValidationError as e:
-            raise ValidationError(f"Validation failed: {str(e)}")
-        except Exception as e:
-            raise RuntimeError(f"An error occurred during chat processing: {str(e)}")
+        pass
 
     def _create_chat_response(self, validated_output) -> AGENT_CHAT_RESPONSE_TYPE:
-        if validated_output.validation_passed:
-            content = validated_output.validated_output
-        else:
-            content = "I'm sorry, but I couldn't generate a valid response."
-
-        metadata_update = {
-            "validation_passed": validated_output.validation_passed,
-            "validated_output": validated_output.validated_output,
-            "error": validated_output.error,
-            "raw_llm_output": validated_output.raw_llm_output,
-        }
-
-        if isinstance(self._engine_response, AgentChatResponse):
-            if self._engine_response.metadata is None:
-                self._engine_response.metadata = {}
-            self._engine_response.metadata.update(metadata_update)
-        elif isinstance(self._engine_response, StreamingAgentChatResponse):
-            for key, value in metadata_update.items():
-                setattr(self._engine_response, key, value)
-
-        self._engine_response.response = content
-        return self._engine_response
+        pass
 
     async def achat(
         self, message: str, chat_history: Optional[List["ChatMessage"]] = None
@@ -124,13 +75,13 @@ class GuardrailsChatEngine(BaseChatEngine):
 
     def reset(self):
         """Reset the chat history."""
-        self._engine.reset()
+        pass
 
     @property
     def chat_history(self) -> List["ChatMessage"]:
         """Get the chat history."""
-        return self._engine.chat_history
+        pass
 
     def _get_prompt_modules(self) -> "PromptMixinType":
         """Get prompt modules."""
-        return {}
+        pass

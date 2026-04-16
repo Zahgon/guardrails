@@ -20,7 +20,7 @@ class Stack(List[T]):
     def peek(self) -> Optional[T]:
         """Looks at the object at the top (last/most recently added) of this
         stack without removing it from the stack."""
-        return self.at(-1)
+        pass
 
     def pop(self) -> Optional[T]:
         """Removes the object at the top of this stack and returns that object
@@ -38,9 +38,7 @@ class Stack(List[T]):
 
         Limits Stack Length to _max_length entries
         """
-        self.append(item)
-        if self._max_length:
-            del self[: -self._max_length]
+        pass
 
     def search(self, x: T) -> Optional[int]:
         """Returns the 0-based position of the last item whose value is equal
@@ -90,7 +88,7 @@ class Stack(List[T]):
 
         Same as Stack.top.
         """
-        return self.at(-1)
+        pass
 
     @property
     def bottom(self) -> Optional[T]:
@@ -98,7 +96,7 @@ class Stack(List[T]):
 
         Same as Stack.first.
         """
-        return self.at(0)
+        pass
 
     @property
     def top(self) -> Optional[T]:
@@ -106,9 +104,9 @@ class Stack(List[T]):
 
         Same as Stack.last.
         """
-        return self.at(-1)
+        pass
 
     @property
     def length(self) -> int:
         """Returns the number of items in the Stack."""
-        return len(self)
+        pass

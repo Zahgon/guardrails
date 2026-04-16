@@ -50,57 +50,41 @@ class Iteration(ArbitraryModel):
         Can be used as an identifier for a specific execution of a
         Guard.
         """
-        if not self._id:
-            self._id = str(object_id(self))
-        return self._id
+        pass
 
     @property
     def logs(self) -> Stack[str]:
         """Returns the logs from this iteration as a stack."""
-        scope = str(id(self))
-        scope_handler = get_scope_handler()
-        scoped_logs = scope_handler.get_logs(scope)
-        return Stack(*[log.getMessage() for log in scoped_logs])
+        pass
 
     @property
     def tokens_consumed(self) -> Optional[int]:
         """Returns the total number of tokens consumed during this
         iteration."""
-        input_tokens = self.prompt_tokens_consumed
-        output_tokens = self.completion_tokens_consumed
-        if input_tokens is not None or output_tokens is not None:
-            return (input_tokens or 0) + (output_tokens or 0)
+        pass
 
     @property
     def prompt_tokens_consumed(self) -> Optional[int]:
         """Returns the number of prompt/input tokens consumed during this
         iteration."""
-        response = self.outputs.llm_response_info
-        if response is not None:
-            return response.prompt_token_count
+        pass
 
     @property
     def completion_tokens_consumed(self) -> Optional[int]:
         """Returns the number of completion/output tokens consumed during this
         iteration."""
-        response = self.outputs.llm_response_info
-        if response is not None:
-            return response.response_token_count
+        pass
 
     @property
     def raw_output(self) -> Optional[str]:
         """The exact output from the LLM."""
-        response = self.outputs.llm_response_info
-        if response is not None and response.output:
-            return response.output
-        elif self.outputs.raw_output is not None:
-            return self.outputs.raw_output
+        pass
 
     @property
     def parsed_output(self) -> Optional[Union[str, List, Dict]]:
         """The output from the LLM after undergoing parsing but before
         validation."""
-        return self.outputs.parsed_output
+        pass
 
     @property
     def validation_response(self) -> Optional[Union[ReAsk, str, List, Dict]]:
@@ -112,7 +96,7 @@ class Iteration(ArbitraryModel):
         To access the final output after all steps of validation are completed,
         check out `Call.guarded_output`."
         """
-        return self.outputs.validation_response
+        pass
 
     @property
     def guarded_output(self) -> Optional[Union[str, List, Dict]]:
@@ -122,7 +106,7 @@ class Iteration(ArbitraryModel):
         were corrected during validation. This property may be a partial
         structure if field level reasks occur.
         """
-        return self.outputs.guarded_output
+        pass
 
     @property
     def reasks(self) -> Sequence[ReAsk]:
@@ -131,20 +115,13 @@ class Iteration(ArbitraryModel):
         These would be incorporated into the prompt or the next LLM
         call.
         """
-        return self.outputs.reasks
+        pass
 
     @property
     def validator_logs(self) -> List[ValidatorLogs]:
         """The results of each individual validation performed on the LLM
         response during this iteration."""
-        if self.inputs.stream:
-            filtered_logs = [
-                log
-                for log in self.outputs.validator_logs
-                if log.validation_result and log.validation_result.validated_chunk
-            ]
-            return filtered_logs
-        return self.outputs.validator_logs
+        pass
 
     @property
     def error(self) -> Optional[str]:
@@ -155,13 +132,13 @@ class Iteration(ArbitraryModel):
     @property
     def exception(self) -> Optional[Exception]:
         """The exception that interrupted this iteration."""
-        return self.outputs.exception
+        pass
 
     @property
     def failed_validations(self) -> List[ValidatorLogs]:
         """The validator logs for any validations that failed during this
         iteration."""
-        return self.outputs.failed_validations
+        pass
 
     @property
     def error_spans_in_output(self) -> List[ErrorSpan]:
@@ -169,7 +146,7 @@ class Iteration(ArbitraryModel):
 
         These indices are relative to the complete LLM output.
         """
-        return self.outputs.error_spans_in_output
+        pass
 
     @property
     def status(self) -> str:
@@ -181,43 +158,14 @@ class Iteration(ArbitraryModel):
 
     @property
     def rich_group(self) -> Group:
-        def create_messages_table(
-            messages: Optional[List[Dict[str, Union[str, Prompt, Instructions]]]],
-        ) -> Union[str, Table]:
-            if messages is None:
-                return "No messages."
-            table = Table(show_lines=True)
-            table.add_column("Role", justify="right", no_wrap=True)
-            table.add_column("Content")
-
-            for msg in messages:
-                if hasattr(msg["content"], "source"):
-                    table.add_row(str(msg["role"]), msg["content"].source)  # type: ignore
-                else:
-                    table.add_row(str(msg["role"]), msg["content"])  # type: ignore
-
-            return table
-
-        table = create_messages_table(self.inputs.messages)  # type: ignore
-
-        return Group(
-            Panel(table, title="Messages", style="on #E7DFEB"),
-            Panel(self.raw_output or "", title="Raw LLM Output", style="on #F5F5DC"),
-            Panel(
-                self.validation_response
-                if isinstance(self.validation_response, str)
-                else pretty_repr(self.validation_response),
-                title="Validated Output",
-                style="on #F0FFF0",
-            ),
-        )
+        pass
 
     def __str__(self) -> str:
         return pretty_repr(self)
 
     @deprecated("Use Iteration.model_dump() instead.")
     def to_interface(self) -> dict[str, Any]:
-        return self.model_dump(exclude_none=True, by_alias=True)
+        pass
 
     @deprecated("Use Iteration.model_dump() instead.")
     def to_dict(self) -> dict[str, Any]:
@@ -226,7 +174,7 @@ class Iteration(ArbitraryModel):
     @classmethod
     @deprecated("Use Iteration.model_validate() instead.")
     def from_interface(cls, i_iteration: Any) -> "Iteration":
-        return cls.model_validate(i_iteration)
+        pass
 
     @classmethod
     @deprecated("Use Iteration.model_validate() instead.")

@@ -133,30 +133,13 @@ try:
             # Add the document, in case the document is already there it
             # would raise an exception and we assume the document and
             # vectors are present.
-            try:
-                self._storage.add_docs(
-                    [document], vdb_last_index=self._vector_db.last_index()
-                )
-            except IntegrityError:
-                return
-            self._vector_db.add_texts(list(document.pages.values()))
+            pass
 
         def add_text(self, text: str, meta: Dict[Any, Any]) -> str:
-            hash = hashlib.md5()
-            hash.update(text.encode("utf-8"))
-            hash.update(str(meta).encode("utf-8"))
-            id = hash.hexdigest()
-
-            doc = Document(id, {0: text}, meta)
-            self.add_document(doc)
-            return doc.id
+            pass
 
         def add_texts(self, texts: Dict[str, Dict[Any, Any]]) -> List[str]:
-            doc_ids = []
-            for text, meta in texts.items():
-                doc_id = self.add_text(text, meta)
-                doc_ids.append(doc_id)
-            return doc_ids
+            pass
 
         def search(self, query: str, k: int = 4) -> List[Page]:
             vector_db_indexes = self._vector_db.similarity_search(query, k)
@@ -166,14 +149,10 @@ try:
         def search_with_threshold(
             self, query: str, threshold: float, k: int = 4
         ) -> List[Page]:
-            vector_db_indexes = self._vector_db.similarity_search_with_threshold(
-                query, k, threshold
-            )
-            filtered_ids = list(filter(lambda x: x != -1, vector_db_indexes))
-            return self._storage.get_pages_for_for_indexes(filtered_ids)
+            pass
 
         def flush(self, path: Optional[str] = None):
-            self._vector_db.save(path)
+            pass
 
     Base = declarative_base()
 
@@ -193,22 +172,7 @@ try:
             RealSqlDocument.metadata.create_all(self._engine, checkfirst=True)
 
         def add_docs(self, docs: List[Document], vdb_last_index: int):
-            vector_id = vdb_last_index
-            with Session(self._engine) as session:
-                for doc in docs:
-                    for page_num, text in doc.pages.items():
-                        session.add(
-                            RealSqlDocument(
-                                id=doc.id,
-                                page_num=page_num,
-                                text=text,
-                                meta=doc.metadata,
-                                vector_index=vector_id,
-                            )
-                        )
-                        vector_id += 1
-
-                session.commit()
+            pass
 
         def get_pages_for_for_indexes(self, indexes: List[int]) -> List[Page]:
             pages: List[Page] = []

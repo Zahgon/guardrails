@@ -34,17 +34,15 @@ class Settings:
 
     @property
     def rc(self) -> RC:
-        if self._rc is None:
-            self._rc = RC.load()
-        return self._rc
+        pass
 
     @rc.setter
     def rc(self, value: RC):
-        self._rc = value
+        pass
 
     @property
     def watch_mode_enabled(self) -> bool:
-        return self._watch_mode_enabled
+        pass
 
 
 settings = Settings()

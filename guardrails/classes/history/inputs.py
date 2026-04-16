@@ -54,19 +54,12 @@ class Inputs(ArbitraryModel):
 
     @field_serializer("llm_api")
     def serialize_llm_api(self, llm_api: PromptCallableBase | None) -> str | None:
-        if llm_api:
-            return str(llm_api)
-        return None
+        pass
 
     @field_validator("llm_api", mode="before")
     @classmethod
     def deserialize_llm_api(cls, llm_api: Any) -> PromptCallableBase | None:
-        if isinstance(llm_api, PromptCallableBase):
-            return llm_api
-        # Note: We can potentially identify the correct
-        #  PrompCallable Class and reconstruct it,
-        # but the previous implementation always just returned None.
-        return None
+        pass
 
     @field_serializer("messages")
     def serialize_messages(
@@ -74,22 +67,11 @@ class Inputs(ArbitraryModel):
     ) -> list[dict[str, Any]] | None:
         # Legacy serialization logic from previous to_interface implementation
         # TODO: Just make Prompt, Instructions, and Messages pydantic models
-        if messages:
-            serialized_messages = []
-            for msg in messages:
-                ser_msg = {**msg}
-                content = ser_msg.get("content")
-                if content:
-                    ser_msg["content"] = (
-                        content.source if isinstance(content, Prompt) else content
-                    )
-                serialized_messages.append(ser_msg)
-            return serialized_messages
-        return None
+        pass
 
     @deprecated("Use Inputs.model_dump() instead.")
     def to_interface(self) -> dict[str, Any]:
-        return self.model_dump(exclude_none=True, by_alias=True)
+        pass
 
     @deprecated("Use Inputs.model_dump() instead.")
     def to_dict(self) -> dict[str, Any]:
@@ -98,7 +80,7 @@ class Inputs(ArbitraryModel):
     @classmethod
     @deprecated("Use Inputs.model_validate() instead.")
     def from_interface(cls, i_inputs: Any) -> "Inputs":
-        return cls.model_validate(i_inputs)
+        pass
 
     @classmethod
     @deprecated("Use Inputs.model_validate() instead.")

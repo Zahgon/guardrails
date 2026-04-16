@@ -40,8 +40,7 @@ TIME_BETWEEN_CLEANUPS = 10.0  # Seconds
 # Handle timestamp -> sqlite map:
 def adapt_datetime(val):
     """Adapt datetime.datetime to Unix timestamp."""
-    # return val.isoformat()  # If we want to go to datetime/isoformat...
-    return int(val.timestamp())
+    pass
 
 
 sqlite3.register_adapter(datetime.datetime, adapt_datetime)
@@ -49,9 +48,7 @@ sqlite3.register_adapter(datetime.datetime, adapt_datetime)
 
 def convert_timestamp(val):
     """Convert Unix epoch timestamp to datetime.datetime object."""
-    # To go to datetime.datetime:
-    # return datetime.datetime.fromisoformat(val.decode())
-    return datetime.datetime.fromtimestamp(int(val))
+    pass
 
 
 sqlite3.register_converter("timestamp", convert_timestamp)
@@ -92,33 +89,12 @@ class SQLiteTraceHandler(TracerMixin):
 
     @classmethod
     def _get_write_connection(cls, log_path: os.PathLike) -> sqlite3.Connection:
-        try:
-            db = sqlite3.connect(
-                log_path,
-                isolation_level=None,
-                check_same_thread=False,
-            )
-            db.execute("PRAGMA journal_mode = wal")
-            db.execute("PRAGMA synchronous = OFF")
-            # isolation_level = None and pragma WAL means we can READ from the DB
-            # while threads using it are writing.  Synchronous off puts us on the
-            # highway to the danger zone, depending on how willing we are to lose log
-            # messages in the event of a guard crash.
-        except sqlite3.OperationalError as e:
-            # logging.exception("Unable to connect to guard log handler.")
-            raise e
-        with db:
-            db.execute(SQLiteTraceHandler.CREATE_COMMAND)
-        return db
+        pass
 
     @classmethod
     def _get_read_connection(cls, log_path: os.PathLike) -> sqlite3.Connection:
         # A bit of a hack to open in read-only mode...
-        db = sqlite3.connect(
-            "file:" + str(log_path) + "?mode=ro", isolation_level=None, uri=True
-        )
-        db.row_factory = sqlite3.Row
-        return db
+        pass
 
     def _truncate(self, force: bool = False, keep_n: int = LOG_RETENTION_LIMIT):
         assert not self.readonly
@@ -160,10 +136,7 @@ class SQLiteTraceHandler(TracerMixin):
         self._truncate()
 
     def log_entry(self, guard_log_entry: GuardTraceEntry):
-        assert not self.readonly
-        with self.db:
-            self.db.execute(SQLiteTraceHandler.INSERT_COMMAND, asdict(guard_log_entry))
-        self._truncate()
+        pass
 
     def log_validator(self, vlog: ValidatorLogs):
         assert not self.readonly

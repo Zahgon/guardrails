@@ -69,49 +69,23 @@ class CallInputs(Inputs, ArbitraryModel):
     def serialize_llm_api(
         self, llm_api: Callable[[Any], Awaitable[Any]] | None
     ) -> str | None:
-        if llm_api:
-            return str(llm_api)
-        return None
+        pass
 
     @field_validator("llm_api", mode="before")
     @classmethod
     def deserialize_llm_api(
         cls, llm_api: Any
     ) -> Callable[[Any], Awaitable[Any]] | None:
-        if callable(llm_api):
-            return llm_api  # type: ignore
-        # Note: We can potentially identify the correct
-        #  PrompCallable Class and reconstruct it,
-        # but the previous implementation always just returned None.
-        return None
+        pass
 
     @field_validator("messages", mode="before")
     @classmethod
     def deserialize_messages(cls, messages: Any) -> list[dict[str, str]] | None:
-        if messages is not None and isinstance(messages, Iterable):
-            serialized_messages = []
-            for msg in messages:
-                ser_msg = {**msg}
-                content = ser_msg.get("content")
-                if content:
-                    ser_msg["content"] = (
-                        content.source if isinstance(content, BasePrompt) else content
-                    )
-                serialized_messages.append(ser_msg)
-            return serialized_messages
-        return None
+        pass
 
     @field_serializer("kwargs")
     def serialize_kwargs(self, kwargs: dict[str, Any]) -> dict[str, Any]:
-        redacted_kwargs = {}
-        for k, v in kwargs.items():
-            if ("key" in k.lower() or "token" in k.lower()) and isinstance(v, str):
-                redaction_length = len(v) - 4
-                stars = "*" * redaction_length
-                redacted_kwargs[k] = f"{stars}{v[-4:]}"
-            else:
-                redacted_kwargs[k] = v
-        return redacted_kwargs
+        pass
 
     @deprecated("Use CallInputs.model_dump() instead.")
     def to_dict(self) -> Dict[str, Any]:
@@ -120,7 +94,7 @@ class CallInputs(Inputs, ArbitraryModel):
     @classmethod
     @deprecated("Use CallInputs.model_validate() instead.")
     def from_interface(cls, i_call_inputs: Any) -> "CallInputs":
-        return cls.model_validate(i_call_inputs)
+        pass
 
     @classmethod
     @deprecated("Use CallInputs.model_validate() instead.")

@@ -186,14 +186,7 @@ class Guard(IGuard, Generic[OT]):
     def must_be_valid_json_schema(
         cls, output_schema: Optional[JSONSchema] = None
     ) -> Optional[JSONSchema]:
-        if output_schema:
-            try:
-                validate_json_schema(
-                    output_schema.model_dump(exclude_none=True, by_alias=True)
-                )
-            except SchemaValidationError as e:
-                raise ValueError(f"{str(e)}\n{json.dumps(e.fields, indent=2)}")
-        return output_schema
+        pass
 
     def configure(
         self,
@@ -288,12 +281,7 @@ class Guard(IGuard, Generic[OT]):
         **kwargs,  # noqa
     ):
         """Backfill execution options from kwargs."""
-        if num_reasks is not None:
-            self._exec_opts.num_reasks = num_reasks
-        if messages is not None:
-            self._exec_opts.messages = messages
-        if reask_messages is not None:
-            self._exec_opts.reask_messages = reask_messages
+        pass
 
     @classmethod
     def _for_rail_schema(
@@ -495,115 +483,7 @@ class Guard(IGuard, Generic[OT]):
         full_schema_reask: Optional[bool] = None,
         **kwargs,
     ) -> Union[ValidationOutcome[OT], Iterator[ValidationOutcome[OT]]]:
-        self._fill_validator_map()
-        self._fill_validators()
-        self._fill_exec_opts(
-            num_reasks=num_reasks,
-            messages=messages,
-            reask_messages=reask_messages,
-        )
-        metadata = metadata or {}
-        # if not llm_output and llm_api and not (messages):
-        #     raise RuntimeError("'messages' must be provided in order to call an LLM!")
-
-        # check if validator requirements are fulfilled
-        missing_keys = verify_metadata_requirements(metadata, self._validators)
-        if missing_keys:
-            raise ValueError(
-                f"Missing required metadata keys: {', '.join(missing_keys)}"
-            )
-
-        def __exec(
-            self: Guard,
-            *args,
-            llm_api: Optional[Callable] = None,
-            llm_output: Optional[str] = None,
-            prompt_params: Optional[Dict] = None,
-            num_reasks: Optional[int] = None,
-            messages: Optional[List[Dict]] = None,
-            metadata: Optional[Dict] = None,
-            full_schema_reask: Optional[bool] = None,
-            **kwargs,
-        ):
-            prompt_params = prompt_params or {}
-            metadata = metadata or {}
-            if full_schema_reask is None:
-                full_schema_reask = self._base_model is not None
-
-            set_call_kwargs(kwargs)
-            set_guard_name(self.name)
-
-            self._set_num_reasks(num_reasks=num_reasks)
-            if self._num_reasks is None:
-                raise RuntimeError(
-                    "`num_reasks` is `None` after calling `configure()`. "
-                    "This should never happen."
-                )
-
-            input_messages = messages or self._exec_opts.messages
-            call_inputs = CallInputs(
-                llmApi=llm_api,
-                messages=input_messages,
-                promptParams=prompt_params,
-                numReasks=self._num_reasks,
-                metadata=metadata,
-                fullSchemaReask=full_schema_reask,
-                args=list(args),
-                kwargs=kwargs,
-            )
-
-            if self._use_server and model_is_supported_server_side(
-                llm_api, *args, **kwargs
-            ):
-                return self._call_server(
-                    llm_output=llm_output,
-                    llm_api=llm_api,
-                    num_reasks=self._num_reasks,
-                    prompt_params=prompt_params,
-                    metadata=metadata,
-                    full_schema_reask=full_schema_reask,
-                    *args,
-                    **kwargs,
-                )
-
-            call_log = Call(inputs=call_inputs)
-            set_scope(str(object_id(call_log)))
-            self.history.push(call_log)
-            # Otherwise, call the LLM synchronously
-            return self._exec(
-                llm_api=llm_api,
-                llm_output=llm_output,
-                prompt_params=prompt_params,
-                num_reasks=self._num_reasks,
-                messages=messages,
-                metadata=metadata,
-                full_schema_reask=full_schema_reask,
-                call_log=call_log,
-                *args,
-                **kwargs,
-            )
-
-        guard_context = contextvars.Context()
-
-        # get the current otel context and wrap the subsequent call
-        #   to preserve otel context if guard call is being called be another
-        # framework upstream
-        current_otel_context = otel_context.get_current()
-        wrapped__exec = wrap_with_otel_context(current_otel_context, __exec)
-
-        return guard_context.run(
-            wrapped__exec,
-            self,
-            llm_api=llm_api,
-            llm_output=llm_output,
-            prompt_params=prompt_params,
-            num_reasks=num_reasks,
-            messages=messages,
-            metadata=metadata,
-            full_schema_reask=full_schema_reask,
-            *args,
-            **kwargs,
-        )
+        pass
 
     def _exec(
         self,
@@ -618,63 +498,7 @@ class Guard(IGuard, Generic[OT]):
         messages: Optional[List[Dict]] = None,
         **kwargs,
     ) -> Union[ValidationOutcome[OT], Iterator[ValidationOutcome[OT]]]:
-        api = None
-
-        if llm_api is not None or kwargs.get("model") is not None:
-            api = get_llm_ask(llm_api, *args, **kwargs)
-
-        if self._output_formatter is not None:
-            # Type suppression here? ArbitraryCallable is a subclass of PromptCallable!?
-            api = self._output_formatter.wrap_callable(api)  # type: ignore
-
-        # Check whether stream is set
-        if kwargs.get("stream", False):
-            # If stream is True, use StreamRunner
-            runner = StreamRunner(
-                output_type=self._output_type,
-                output_schema=self.output_schema.model_dump(
-                    exclude_none=True, by_alias=True
-                ),
-                num_reasks=num_reasks,
-                validation_map=self._validator_map,
-                messages=messages,
-                api=api,
-                metadata=metadata,
-                output=llm_output,
-                base_model=self._base_model,
-                full_schema_reask=full_schema_reask,
-                disable_tracer=(
-                    not self._allow_metrics_collection
-                    if isinstance(self._allow_metrics_collection, bool)
-                    else None
-                ),
-                exec_options=self._exec_opts,
-            )
-            return runner(call_log=call_log, prompt_params=prompt_params)
-        else:
-            # Otherwise, use Runner
-            runner = Runner(
-                output_type=self._output_type,
-                output_schema=self.output_schema.model_dump(
-                    exclude_none=True, by_alias=True
-                ),
-                num_reasks=num_reasks,
-                validation_map=self._validator_map,
-                messages=messages,
-                api=api,
-                metadata=metadata,
-                output=llm_output,
-                base_model=self._base_model,
-                full_schema_reask=full_schema_reask,
-                disable_tracer=(
-                    not self._allow_metrics_collection
-                    if isinstance(self._allow_metrics_collection, bool)
-                    else None
-                ),
-                exec_options=self._exec_opts,
-            )
-            call = runner(call_log=call_log, prompt_params=prompt_params)
-            return ValidationOutcome[OT].from_guard_history(call)
+        pass
 
     @trace(name="/guard_call", origin="Guard.__call__")
     def __call__(
@@ -785,51 +609,10 @@ class Guard(IGuard, Generic[OT]):
 
     def error_spans_in_output(self) -> List[ErrorSpan]:
         """Get the error spans in the last output."""
-        try:
-            call = self.history.last
-            if call:
-                iter = call.iterations.last
-                if iter:
-                    llm_spans = iter.error_spans_in_output
-                    return llm_spans
-                return []
-            return []
-        except (AttributeError, TypeError):
-            return []
+        pass
 
     def __add_validators(self, validators: List[Validator], on: str = "output"):
-        if on not in [
-            "output",
-            "messages",
-        ] and not on.startswith("$"):
-            warnings.warn(
-                f"Unusual 'on' value: {on}!"
-                "This value is typically one of "
-                "'output', 'messages') "
-                "or a JSON path starting with '$.'",
-                UserWarning,
-            )
-
-        if on == "output":
-            on = "$"
-
-        validator_references = [
-            ValidatorReference(
-                id=validator.rail_alias,
-                on=on,
-                on_fail=validator.on_fail_descriptor,  # type: ignore
-                kwargs=validator.get_args(),
-            )
-            for validator in validators
-        ]
-        retained_validator_refs = [v for v in self.validators if v.on != on]
-        retained_validator_refs.extend(validator_references)
-
-        self.validators = retained_validator_refs
-
-        self._validator_map[on] = validators
-
-        self._validators = [v for on_vs in self._validator_map.values() for v in on_vs]
+        pass
 
     def use(
         self,
@@ -851,9 +634,7 @@ class Guard(IGuard, Generic[OT]):
                 The property to validate. Valid options include "output", "messages",
              or a JSON path starting with "$.". Defaults to "output".
         """
-        vals = [*list(validator_spread), *validators]
-        self.__add_validators(vals, on=on)
-        return self
+        pass
 
     def get_validators(self, on: str) -> List[Validator]:
         """The read-only counterpart to `Guard.use`. Retrieves the validators
@@ -882,120 +663,14 @@ class Guard(IGuard, Generic[OT]):
     #     pass
 
     def _single_server_call(self, *, payload: Dict[str, Any]) -> ValidationOutcome[OT]:
-        if self._use_server and self._api_client:
-            validation_output: IValidationOutcome = self._api_client.validate(
-                guard=self,  # type: ignore
-                openai_api_key=get_call_kwarg("api_key"),
-                **payload,
-            )
-            if not validation_output:
-                return ValidationOutcome[OT](
-                    call_id="0",  # type: ignore
-                    rawLlmOutput=None,
-                    validatedOutput=None,
-                    validationPassed=False,
-                    error="The response from the server was empty!",
-                )
-            if os.environ.get("GUARD_HISTORY_ENABLED", "true").lower() == "true":
-                guard_history = self._api_client.get_history(
-                    self.name, validation_output.call_id
-                )
-                call_log = safe_get(
-                    [
-                        c
-                        for c in guard_history
-                        if c.get("id") == validation_output.call_id
-                    ],
-                    0,
-                )
-                if call_log:
-                    try:
-                        call = Call.model_validate(call_log)
-                        # Only append the history from this call
-                        self.history.append(call)
-                    except ValidationError:
-                        pass
-
-            validation_summaries = validation_output.validation_summaries or []
-            validation_summaries = [
-                ValidationSummary(**v.model_dump()) for v in validation_summaries
-            ]
-            if not validation_summaries:
-                call_log: Call = safe_get(
-                    [c for c in self.history if c.id == validation_output.call_id], 0
-                )
-                if call_log and call_log.iterations.last:
-                    validator_logs = call_log.iterations.last.validator_logs
-                    validation_summaries = (
-                        ValidationSummary.from_validator_logs_only_fails(validator_logs)
-                    )
-
-            # TODO: See if the below statement is still true
-            # Our interfaces are too different for this to work right now.
-            # Once we move towards shared interfaces for both the open source
-            # and the api we can re-enable this.
-            # return ValidationOutcome[OT].from_guard_history(call_log)
-            validated_output = (
-                cast(OT, validation_output.validated_output)
-                if validation_output.validated_output
-                else None
-            )
-            return ValidationOutcome[OT](
-                call_id=validation_output.call_id,  # type: ignore
-                rawLlmOutput=validation_output.raw_llm_output,
-                validatedOutput=validated_output,
-                validationPassed=(validation_output.validation_passed is True),
-                validationSummaries=validation_summaries,
-            )
-        else:
-            raise ValueError("Guard does not have an api client!")
+        pass
 
     def _stream_server_call(
         self,
         *,
         payload: Dict[str, Any],
     ) -> Iterator[ValidationOutcome[OT]]:
-        if self._use_server and self._api_client:
-            validation_output: Optional[IValidationOutcome] = None
-            response = self._api_client.stream_validate(
-                guard=self,  # type: ignore
-                openai_api_key=get_call_kwarg("api_key"),
-                **payload,
-            )
-            for fragment in response:
-                validation_output = fragment
-                if validation_output is None:
-                    yield ValidationOutcome[OT](
-                        call_id="0",  # type: ignore
-                        rawLlmOutput=None,
-                        validatedOutput=None,
-                        validationPassed=False,
-                        error="The response from the server was empty!",
-                    )
-                else:
-                    validated_output = (
-                        cast(OT, validation_output.validated_output)
-                        if validation_output.validated_output
-                        else None
-                    )
-                    yield ValidationOutcome[OT](
-                        call_id=validation_output.call_id,  # type: ignore
-                        rawLlmOutput=validation_output.raw_llm_output,
-                        validatedOutput=validated_output,
-                        validationPassed=(validation_output.validation_passed is True),
-                    )
-
-            if os.environ.get("GUARD_HISTORY_ENABLED", "true").lower() == "true":
-                if validation_output:
-                    guard_history = self._api_client.get_history(
-                        self.id, validation_output.call_id
-                    )
-                    if isinstance(guard_history, Sequence):
-                        self.history.extend(
-                            [Call.model_validate(call) for call in guard_history]
-                        )
-        else:
-            raise ValueError("Guard does not have an api client!")
+        pass
 
     def _call_server(
         self,
@@ -1008,35 +683,7 @@ class Guard(IGuard, Generic[OT]):
         full_schema_reask: Optional[bool] = True,
         **kwargs,
     ) -> Union[ValidationOutcome[OT], Iterator[ValidationOutcome[OT]]]:
-        if self._use_server and self._api_client:
-            payload: Dict[str, Any] = {
-                "args": list(args),
-                "full_schema_reask": full_schema_reask,
-            }
-            payload.update(**kwargs)
-            if metadata:
-                payload["metadata"] = extract_serializeable_metadata(metadata)
-            if llm_output is not None:
-                payload["llm_output"] = llm_output
-            if num_reasks is not None:
-                payload["num_reasks"] = num_reasks or self._exec_opts.num_reasks
-            if prompt_params is not None:
-                payload["prompt_params"] = prompt_params
-
-            if not payload.get("messages"):
-                payload["messages"] = self._exec_opts.messages
-            if not payload.get("reask_messages"):
-                payload["reask_messages"] = self._exec_opts.reask_messages
-
-            should_stream = kwargs.get("stream", False)
-            if should_stream:
-                return self._stream_server_call(payload=payload)
-            else:
-                return self._single_server_call(
-                    payload=payload,
-                )
-        else:
-            raise ValueError("Guard does not have an api client!")
+        pass
 
     def save(self):
         """Upserts a Guard to your guardrails-api server.
@@ -1044,34 +691,11 @@ class Guard(IGuard, Generic[OT]):
         Only valid for servers using a database to persist Guards. Not
         valid for servers using a config.py file.
         """
-        if self.name is None:
-            self.name = f"gr-{str(self.id)}"
-            logger.warning("No name passed to guard!")
-            logger.warning(
-                "Use this auto-generated name to re-use this guard: {name}".format(
-                    name=self.name
-                )
-            )
-        if not self._api_client:
-            self._api_client = GuardrailsApiClient(
-                api_key=self._api_key, base_url=self._base_url
-            )
-        try:
-            saved_guard = self._api_client.upsert_guard(self)
-            self.id = saved_guard.id
-            self._use_server = True
-        except Exception as e:
-            logger.error(
-                f"Failed to save Guard with name {self.name}! Make sure your Guard is"
-                " properly configured with an API Key, and base url."
-            )
-            raise e
+        pass
 
     def to_runnable(self) -> Runnable:
         """Convert a Guard to a LangChain Runnable."""
-        from guardrails.integrations.langchain.guard_runnable import GuardRunnable
-
-        return GuardRunnable(self)
+        pass
 
     # override IGuard.to_dict
     def to_dict(self) -> Dict[str, Any]:
@@ -1079,7 +703,7 @@ class Guard(IGuard, Generic[OT]):
 
     @experimental
     def response_format_json_schema(self) -> Dict[str, Any]:
-        return output_format_json_schema(schema=self._base_model)  # type: ignore
+        pass
 
     def json_function_calling_tool(
         self,
@@ -1179,10 +803,4 @@ class Guard(IGuard, Generic[OT]):
         Only valid for servers using a database to persist Guards. Not
         valid for servers using a config.py file.
         """
-        if self.name is None:
-            self.name = f"gr-{str(self.id)}"
-        if not self._api_client:
-            self._api_client = GuardrailsApiClient(
-                api_key=self._api_key, base_url=self._base_url
-            )
-        self._api_client.delete_guard(self.name)
+        pass

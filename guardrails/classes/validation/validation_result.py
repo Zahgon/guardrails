@@ -24,7 +24,7 @@ class ValidationResult(IValidationResult):
     @classmethod
     @deprecated("Use to_validation_result() instead.")
     def from_interface(cls, i_validation_result: Any) -> "ValidationResult":
-        return to_validation_result(i_validation_result)
+        pass
 
     @classmethod
     @deprecated("Use to_validation_result instead.")
@@ -35,7 +35,7 @@ class ValidationResult(IValidationResult):
 class PassResult(IPassResult, ValidationResult):
     @deprecated("Use PassResult.model_dump() instead.")
     def to_interface(self) -> dict[str, Any]:
-        return self.model_dump(exclude_none=True, by_alias=True)
+        pass
 
     @deprecated("Use PassResult.model_dump() instead.")
     def to_dict(self) -> Dict[str, Any]:
@@ -46,7 +46,7 @@ class FailResult(IFailResult, ValidationResult):
     @classmethod
     @deprecated("Use FailResult.model_validate() instead.")
     def from_interface(cls, i_fail_result: Any) -> "FailResult":
-        return cls.model_validate(i_fail_result)
+        pass
 
     @classmethod
     @deprecated("Use FailResult.model_validate() instead.")

@@ -191,74 +191,15 @@ class ValidatorPackageService:
     @staticmethod
     def unregister_validator(validator_id: str):
         """Remove a validator from the project-level JSON registry."""
-        registry_file = get_registry_path()
-        if not registry_file.exists():
-            return
-
-        try:
-            registry = json.loads(registry_file.read_text())
-        except (json.JSONDecodeError, OSError):
-            guardrails_logger.debug(
-                "Registry at %s is unreadable; skipping unregister",
-                registry_file,
-            )
-            return
-
-        validators = registry.get("validators", {})
-        if validator_id in validators:
-            del validators[validator_id]
-            registry["validators"] = validators
-            registry_file.write_text(json.dumps(registry, indent=2))
-            ValidatorPackageService.rewrite_stub_file(
-                ValidatorRegistry.model_validate(registry)
-            )
+        pass
 
     @staticmethod
     def add_to_hub_inits(manifest: Manifest, site_packages: str):
-        validator_id = manifest.id
-        exports: List[str] = manifest.exports or []
-        sorted_exports = sorted(exports, reverse=True)
-
-        import_path = ValidatorPackageService.get_import_path_from_validator_id(
-            validator_id
-        )
-        import_line = f"from {import_path} import {', '.join(sorted_exports)}"
-
-        hub_init_location = os.path.join(
-            site_packages, "guardrails", "hub", "__init__.py"
-        )
-        with open(hub_init_location, "a+") as hub_init:
-            hub_init.seek(0, 0)
-            content = hub_init.read()
-            if import_line in content:
-                hub_init.close()
-            else:
-                hub_init.seek(0, 2)
-                if len(content) > 0:
-                    hub_init.write("\n")
-                hub_init.write(import_line)
-                hub_init.close()
+        pass
 
     @staticmethod
     def get_module_path(package_name):
-        try:
-            if package_name not in sys.modules:
-                module = importlib.import_module(package_name)
-                sys.modules[package_name] = module
-
-            module = sys.modules[package_name]
-            package_path = module.__path__[0]  # Take the first entry if it's a list
-
-        except (ModuleNotFoundError, AttributeError, TypeError) as e:
-            # wasn't able to import the module
-            raise FailedToLocateModule(
-                f"""
-                    The module {package_name} could not be found in 
-                    the current environment.
-                """
-            ) from e
-
-        return package_path
+        pass
 
     @staticmethod
     def get_validator_id(validator_uri: str):

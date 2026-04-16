@@ -41,88 +41,21 @@ class GuardrailsQueryEngine(BaseQueryEngine):
 
     @property
     def guard(self) -> Guard:
-        return self._guard
+        pass
 
     def engine_api(self, *, messages: List[Dict[str, str]], **kwargs) -> str:
-        query = messages[0]["content"]
-        response = self._engine.query(query)
-        self._engine_response = response
-        return str(response)
+        pass
 
     def _query(self, query_bundle: "QueryBundle") -> RESPONSE_TYPE:
-        if not isinstance(self._engine, BaseQueryEngine):
-            raise ValueError(
-                "Cannot perform query with a ChatEngine. Use chat() method instead."
-            )
-        if isinstance(query_bundle, str):
-            query_bundle = QueryBundle(query_bundle)
-        try:
-            messages = [
-                {
-                    "role": "user",
-                    "content": query_bundle.query_str,
-                }
-            ]
-            validated_output = self.guard(
-                llm_api=self.engine_api,
-                messages=messages,
-                **self._guard_kwargs,
-            )
-
-            validated_output = cast(ValidationOutcome, validated_output)
-            # self._engine_response = cast(RESPONSE_TYPE, self._engine_response)
-            if not validated_output.validation_passed:
-                raise ValidationError(f"Validation failed: {validated_output.error}")
-            self._update_response_metadata(validated_output)
-            if validated_output.validation_passed:
-                if isinstance(self._engine_response, Response):
-                    self._engine_response.response = validated_output.validated_output
-                elif isinstance(
-                    self._engine_response, (StreamingResponse, AsyncStreamingResponse)
-                ):
-                    self._engine_response.response_txt = (
-                        validated_output.validated_output
-                    )
-                elif isinstance(self._engine_response, PydanticResponse):
-                    if self._engine_response.response:
-                        import json
-
-                        json_str = (
-                            validated_output.validated_output
-                            if isinstance(validated_output.validated_output, str)
-                            else json.dumps(validated_output.validated_output)
-                        )
-                        self._engine_response.response = self._engine_response.response.__class__.model_validate_json(  # noqa: E501
-                            json_str
-                        )
-                else:
-                    raise ValueError("Unsupported response type")
-        except ValidationError as e:
-            raise ValidationError(f"Validation failed: {str(e)}")
-        except Exception as e:
-            raise RuntimeError(f"An error occurred during query processing: {str(e)}")
-        return self._engine_response
+        pass
 
     def _update_response_metadata(self, validated_output):
-        if self._engine_response is None:
-            return
-        self._engine_response = cast(RESPONSE_TYPE, self._engine_response)
-
-        metadata_update = {
-            "validation_passed": validated_output.validation_passed,
-            "validated_output": validated_output.validated_output,
-            "error": validated_output.error,
-            "raw_llm_output": validated_output.raw_llm_output,
-        }
-
-        if self._engine_response.metadata is None:
-            self._engine_response.metadata = {}
-        self._engine_response.metadata.update(metadata_update)
+        pass
 
     async def _aquery(self, query_bundle: "QueryBundle") -> "RESPONSE_TYPE":
         """Async version of _query."""
-        return self._query(query_bundle)
+        pass
 
     def _get_prompt_modules(self) -> "PromptMixinType":
         """Get prompt modules."""
-        return self._engine._get_prompt_modules()
+        pass

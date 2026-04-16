@@ -31,27 +31,7 @@ class ValidationOutcome(IValidationOutcome, Generic[OT]):
     @classmethod
     def from_guard_history(cls, call: Call):
         """Create a ValidationOutcome from a history Call object."""
-        last_iteration = call.iterations.last or Iteration(callId=call.id, index=0)
-        last_output = last_iteration.validation_response or safe_get(
-            list(last_iteration.reasks), 0
-        )
-        validation_passed = call.status == pass_status
-        validator_logs = last_iteration.validator_logs or []
-        validation_summaries = ValidationSummary.from_validator_logs_only_fails(
-            validator_logs
-        )
-        reask = last_output if isinstance(last_output, ReAsk) else None
-        error = call.error
-        output = cast(OT, call.guarded_output)
-        return cls(
-            callId=call.id,
-            rawLlmOutput=call.raw_outputs.last,
-            validatedOutput=output,
-            reask=reask,
-            validationPassed=validation_passed,
-            validationSummaries=validation_summaries,
-            error=error,
-        )
+        pass
 
     def __iter__(
         self,

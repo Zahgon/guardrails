@@ -22,7 +22,7 @@ class TracerMixin:
 
     @property
     def log_path(self) -> os.PathLike:
-        return self._log_path
+        pass
 
     def log(self, *args, **kwargs):
         pass

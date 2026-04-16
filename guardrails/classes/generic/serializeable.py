@@ -17,9 +17,7 @@ def get_annotations(obj):
 
 class SerializeableJSONEncoder(JSONEncoder):
     def default(self, o):
-        if is_dataclass(o):
-            return asdict(o)
-        return super().default(o)
+        pass
 
 
 encoder_kwargs = {}
@@ -49,4 +47,4 @@ class Serializeable:
         return asdict(self)
 
     def to_json(self):
-        return json.dumps(self, cls=self.encoder)  # type: ignore
+        pass

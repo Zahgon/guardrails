@@ -33,19 +33,7 @@ def preprocess_prompt_for_string_output(
     instructions: Optional[Instructions],
     prompt: Prompt,
 ) -> Tuple[Optional[Instructions], Prompt]:
-    if isinstance(prompt_callable, LiteLLMCallable) or isinstance(
-        prompt_callable, AsyncLiteLLMCallable
-    ):
-        prompt.source += "\n\nString Output:\n\n"
-    if (
-        isinstance(prompt_callable, LiteLLMCallable)
-        or isinstance(prompt_callable, AsyncLiteLLMCallable)
-    ) and not instructions:
-        instructions = Instructions(
-            "You are a helpful assistant, expressing yourself through a string."
-        )
-
-    return instructions, prompt
+    pass
 
 
 def preprocess_prompt_for_json_output(
@@ -54,24 +42,7 @@ def preprocess_prompt_for_json_output(
     prompt: Prompt,
     use_xml: bool,
 ) -> Tuple[Optional[Instructions], Prompt]:
-    if isinstance(prompt_callable, LiteLLMCallable) or isinstance(
-        prompt_callable, AsyncLiteLLMCallable
-    ):
-        prompt.source += "\n\nJson Output:\n\n"
-    if (
-        isinstance(prompt_callable, LiteLLMCallable)
-        or isinstance(prompt_callable, AsyncLiteLLMCallable)
-    ) and not instructions:
-        schema_type = "XML schemas" if use_xml else "JSON schema"
-        instructions = Instructions(
-            Template(
-                "You are a helpful assistant, "
-                "able to express yourself purely through JSON, "
-                "strictly and precisely adhering to the provided ${schema_type}."
-            ).safe_substitute(schema_type=schema_type)
-        )
-
-    return instructions, prompt
+    pass
 
 
 def preprocess_prompt(
@@ -81,10 +52,4 @@ def preprocess_prompt(
     output_type: OutputTypes,
     use_xml: bool,
 ) -> Tuple[Optional[Instructions], Prompt]:
-    if output_type == OutputTypes.STRING:
-        return preprocess_prompt_for_string_output(
-            prompt_callable, instructions, prompt
-        )
-    return preprocess_prompt_for_json_output(
-        prompt_callable, instructions, prompt, use_xml
-    )
+    pass

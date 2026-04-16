@@ -161,45 +161,4 @@ def create_validator(
     For more complex submissions see here:
     https://github.com/guardrails-ai/validator-template?tab=readme-ov-file#how-to-create-a-guardrails-validator
     """
-    disclaimer = """
-
-    This utility is intended for creating simple validators.
-
-    If your validator is complex or requires additional post-installation steps,\
-        consider using the template repository instead.
-
-    The template repository can be found here:\
-        https://github.com/guardrails-ai/validator-template
-    """
-    logger.log(level=LEVELS.get("NOTICE") or 0, msg=disclaimer)
-
-    package_name = snake_case(name)
-    class_name = pascal_case(name)
-    if not filepath or filepath == "./{validator_name}.py":
-        filepath = f"./{package_name}.py"
-
-    template = validator_template.safe_substitute(
-        {
-            "package_name": package_name,
-            "class_name": class_name,
-            "filepath": filepath,
-            "dev_date": date.today().strftime("%b %d, %Y"),
-        }
-    )
-
-    target = os.path.abspath(filepath)
-    with open(target, "w") as validator_file:
-        validator_file.write(template)
-        validator_file.close()
-
-    success_message = Template(
-        """
-
-    Successfully created validator template at ${filepath}!
-
-    Make any necessary changes then submit for review with the following command:
-
-    guardrails hub submit ${package_name} ${filepath}
-    """
-    ).safe_substitute({"filepath": filepath, "package_name": package_name})
-    logger.log(level=LEVELS.get("SUCCESS"), msg=success_message)  # type: ignore
+    pass

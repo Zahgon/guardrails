@@ -31,12 +31,7 @@ class SimpleSqlDriver(SQLDriver):
     """
 
     def validate_sql(self, query: str) -> List[str]:
-        import sqlvalidator
-
-        sql_query = sqlvalidator.parse(query)
-        if not sql_query.is_valid():
-            return sql_query.errors
-        return sql_query.errors
+        pass
 
     def get_schema(self) -> str:
         raise NotImplementedError
@@ -80,40 +75,11 @@ class SqlAlchemyDriver(SQLDriver):
                 self._conn.execute(text(schema))
 
     def validate_sql(self, query: str) -> List[str]:
-        exceptions: List[str] = []
-        try:
-            self._conn.execute(text(query))
-        except Exception as ex:
-            exceptions.append(str(ex))
-        return exceptions
+        pass
 
     def get_schema(self) -> str:
         # Get table schema using sqlalchemy.inspect
-        insp = sqlalchemy.inspect(self._conn)
-
-        schema = {}
-        for table in insp.get_table_names():
-            schema[table] = {}
-            for column in insp.get_columns(table):
-                schema[table][column["name"]] = {"type": column["type"]}
-
-            # Get foreign keys
-            for fk in insp.get_foreign_keys(table):
-                schema[table][fk["constrained_columns"][0]]["foreign_key"] = {
-                    "table": fk["referred_table"],
-                    "column": fk["referred_columns"][0],
-                }
-
-        # Create a nicely formatted schema from the dictionary
-        formatted_schema = []
-        for table, columns in schema.items():
-            formatted_schema.append(f"Table: {table}")
-            for column, column_info in columns.items():
-                formatted_schema.append(f"    Column: {column}")
-                for info, value in column_info.items():
-                    formatted_schema.append(f"        {info}: {value}")
-
-        return "\n".join(formatted_schema)
+        pass
 
 
 def create_sql_driver(

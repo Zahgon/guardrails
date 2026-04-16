@@ -26,7 +26,7 @@ class BaseFormatter(ABC):
 
 class PassthroughFormatter(BaseFormatter):
     def wrap_callable(self, llm_callable: PromptCallableBase):  # type: ignore
-        return llm_callable  # Noop
+        pass
 
     def wrap_async_callable(self, llm_callable: PromptCallableBase):  # type: ignore
-        return llm_callable  # Noop
+        pass

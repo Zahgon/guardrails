@@ -50,26 +50,15 @@ class BasePrompt:
 
     @property
     def variable_names(self):
-        return get_template_variables(self.source)
+        pass
 
     @property
     def format_instructions(self):
-        return self.source[self.format_instructions_start :]
+        pass
 
     def substitute_constants(self, text: str) -> str:
         """Substitute constants in the prompt."""
-        # Substitute constants by reading the constants file.
-        # Regex to extract all occurrences of ${gr.<constant_name>}
-        matches = re.findall(r"\${gr\.(\w+)}", text)
-
-        # Substitute all occurrences of ${gr.<constant_name>}
-        #   with the value of the constant.
-        for match in matches:
-            template = NamespaceTemplate(text)
-            mapping = {f"gr.{match}": constants[match]}
-            text = template.safe_substitute(**mapping)
-
-        return text
+        pass
 
     def get_prompt_variables(self) -> List[str]:
         return self.variable_names
@@ -79,8 +68,7 @@ class BasePrompt:
 
     def make_vars_optional(self):
         """Make all variables in the prompt optional."""
-        for var in self.variable_names:
-            self.source = self.source.replace(f"{{{var}}}", f"{{{var}:}}")
+        pass
 
     def get_format_instructions_idx(self, text: str) -> Optional[int]:
         """Get the index of the first format instruction in the prompt.
@@ -91,28 +79,7 @@ class BasePrompt:
         Returns:
             The index of the first format instruction in the prompt.
         """
-        # TODO(shreya): Optionally add support for special character demarcation.
-
-        # Regex to extract first occurrence of ${gr.<constant_name>}
-
-        matches = re.finditer(r"\${gr\.(\w+)}", text)
-
-        earliest_match_idx = None
-        earliest_match = None
-
-        # Find the earliest match where the match belongs to a constant.
-        for match in matches:
-            if match.group(1) in constants:
-                if earliest_match_idx is None or earliest_match_idx > match.start():
-                    earliest_match_idx = match.start()
-                    earliest_match = match
-
-        if earliest_match_idx is None:
-            return 0
-
-        if earliest_match is None:
-            return None
-        return earliest_match.start()
+        pass
 
     def escape(self) -> str:
         """Escape single curly braces into double curly braces."""
@@ -121,4 +88,4 @@ class BasePrompt:
         return regex.sub(r"(?<!\${.*)}", "}}", start_replaced)
 
     def _to_request(self) -> str:
-        return self.source
+        pass

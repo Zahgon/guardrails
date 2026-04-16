@@ -21,10 +21,7 @@ class LocalModelFlagNotSet(Exception):
 
 @contextmanager
 def do_nothing_context(*args, **kwargs):
-    try:
-        yield
-    finally:
-        pass
+    pass
 
 
 def default_local_models_confirm():
@@ -206,16 +203,4 @@ def install_multiple(
     Returns:
         List[ValidatorModuleType]: List of installed validator modules.
     """
-    installed_modules = []
-
-    for package_uri in package_uris:
-        installed_module = install(
-            package_uri,
-            install_local_models=install_local_models,
-            quiet=quiet,
-            upgrade=upgrade,  # Pass upgrade here
-            install_local_models_confirm=install_local_models_confirm,
-        )
-        installed_modules.append(installed_module)
-
-    return installed_modules
+    pass

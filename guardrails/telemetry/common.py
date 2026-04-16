@@ -86,14 +86,7 @@ def wrap_with_otel_context(
 
     def wrapped_func(*args: Any, **kwargs: Any) -> Any:
         # Attach the specified OpenTelemetry context before executing 'func'
-        token = context.attach(outer_scope_otel_context)
-        try:
-            # Execute 'func' within the attached context
-            return func(*args, **kwargs)
-        finally:
-            # Ensure the context is detached after execution
-            #   to maintain correct context management
-            context.detach(token)
+        pass
 
     return wrapped_func
 

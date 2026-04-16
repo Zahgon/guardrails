@@ -33,17 +33,11 @@ class ValidatorLogs(ArbitraryModel):
 
     @field_serializer("start_time")
     def serialize_start_time(self, start_time: datetime | None) -> str | None:
-        if start_time is None:
-            return None
-
-        return start_time.isoformat()
+        pass
 
     @field_serializer("end_time")
     def serialize_end_time(self, end_time: datetime | None) -> str | None:
-        if end_time is None:
-            return None
-
-        return end_time.isoformat()
+        pass
 
     # NOTE: It shouldn't be necessary to add this serializer just to call model_dump,
     #   but it is to get the correct serialized output.
@@ -51,30 +45,18 @@ class ValidatorLogs(ArbitraryModel):
     def serialize_validation_result(
         self, validation_result: ValidationResult | None
     ) -> dict[str, Any] | None:
-        if validation_result is None:
-            return None
-        return validation_result.model_dump(exclude_none=True, by_alias=True)
+        pass
 
     @field_validator("validation_result", mode="before")
     @classmethod
     def deserialize_validation_result(
         cls, validation_result: Any
     ) -> ValidationResult | None:
-        if validation_result is None:
-            return None
-        elif isinstance(validation_result, ValidationResult):
-            return validation_result
-        elif isinstance(validation_result, dict):
-            outcome = validation_result.get("outcome")
-            if outcome == Outcome.PASS:
-                return PassResult.model_validate(validation_result)
-            elif outcome == Outcome.FAIL:
-                return FailResult.model_validate(validation_result)
-        return ValidationResult.model_validate(validation_result)
+        pass
 
     @deprecated("Use ValidatorLogs.model_dump() instead.")
     def to_interface(self) -> dict[str, Any]:
-        return self.model_dump(exclude_none=True, by_alias=True)
+        pass
 
     @deprecated("Use ValidatorLogs.model_dump() instead.")
     def to_dict(self) -> Dict[str, Any]:
@@ -83,7 +65,7 @@ class ValidatorLogs(ArbitraryModel):
     @classmethod
     @deprecated("Use ValidatorLogs.model_validate() instead.")
     def from_interface(cls, i_validator_log: Any) -> "ValidatorLogs":
-        return cls.model_validate(i_validator_log)
+        pass
 
     @classmethod
     @deprecated("Use ValidatorLogs.model_validate() instead.")

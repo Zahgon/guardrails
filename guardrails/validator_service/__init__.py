@@ -97,13 +97,7 @@ def validate_stream(
     path: Optional[str] = None,
     **kwargs,
 ) -> Iterator[StreamValidationResult]:
-    if path is None:
-        path = "$"
-    sequential_validator_service = SequentialValidatorService(disable_tracer)
-    gen = sequential_validator_service.validate_stream(
-        value_stream, metadata, validator_map, iteration, path, path, **kwargs
-    )
-    return gen
+    pass
 
 
 async def async_validate(

@@ -199,6 +199,4 @@ def postproc_splits(sentences, separator):
 
 def split_sentences(text, separator="abcdsentenceseperatordcba"):
     # Use the separator in the regex
-    text = re.sub(r"([?!.])(?=\s|$)", rf"\1{separator}", text)
-    text = postproc_splits(text, separator)
-    return re.split(rf"\n?{separator} ?\n?", text)
+    pass

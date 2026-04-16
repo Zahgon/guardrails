@@ -12,7 +12,7 @@ class SerializeableAsyncIterable(BaseModel, Generic[T]):
 
     @model_serializer(mode="plain")
     def serialize_model(self) -> list[T]:
-        return self.content
+        pass
 
     async def __anext__(self) -> T:
         if self._index >= len(self.content):
