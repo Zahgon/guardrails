@@ -126,7 +126,28 @@ def trace(
 ):
     def decorator(fn):
         @wraps(fn)
-        pass
+        def wrapper(*args, **kwargs):
+            hub_telemetry = HubTelemetry()
+            if hub_telemetry._enabled and hub_telemetry._tracer is not None:
+                with hub_telemetry._tracer.start_span(
+                    name,
+                    context=hub_telemetry.extract_current_context(),
+                    set_status_on_exception=True,
+                ) as span:  # noqa
+                    context = set_span_in_context(span)
+                    hub_telemetry.inject_current_context(context=context)
+                    nonlocal origin
+                    origin = origin if origin is not None else name
+
+                    resp = fn(*args, **kwargs)
+                    add_attributes(
+                        span, attrs, name, origin, *args, response=resp, **kwargs
+                    )
+                    return resp
+            else:
+                return fn(*args, **kwargs)
+
+        return wrapper
 
     return decorator
 
@@ -138,7 +159,25 @@ def async_trace(
 ):
     def decorator(fn):
         @wraps(fn)
-        pass
+        async def async_wrapper(*args, **kwargs):
+            hub_telemetry = HubTelemetry()
+            if hub_telemetry._enabled and hub_telemetry._tracer is not None:
+                with hub_telemetry._tracer.start_span(
+                    name,
+                    context=hub_telemetry.extract_current_context(),
+                    set_status_on_exception=True,
+                ) as span:  # noqa
+                    context = set_span_in_context(span)
+                    hub_telemetry.inject_current_context(context=context)
+
+                    nonlocal origin
+                    origin = origin if origin is not None else name
+                    add_attributes(span, {"async": True}, name, origin, *args, **kwargs)
+                    return await fn(*args, **kwargs)
+            else:
+                return await fn(*args, **kwargs)
+
+        return async_wrapper
 
     return decorator
 
@@ -157,13 +196,33 @@ def trace_stream(
 ):
     def decorator(fn):
         @wraps(fn)
-        pass
+        def wrapper(*args, **kwargs):
+            hub_telemetry = HubTelemetry()
+            if hub_telemetry._enabled and hub_telemetry._tracer is not None:
+                with hub_telemetry._tracer.start_span(
+                    name,
+                    context=hub_telemetry.extract_current_context(),
+                    set_status_on_exception=True,
+                ) as span:  # noqa
+                    context = set_span_in_context(span)
+                    hub_telemetry.inject_current_context(context=context)
+
+                    nonlocal origin
+                    origin = origin if origin is not None else name
+                    add_attributes(span, attrs, name, origin, *args, **kwargs)
+                    return _run_gen(fn, *args, **kwargs)
+            else:
+                return fn(*args, **kwargs)
+
+        return wrapper
 
     return decorator
 
 
 async def _run_async_gen(fn, *args, **kwargs) -> AsyncGenerator[Any, None]:
-    pass
+    gen = fn(*args, **kwargs)
+    async for item in gen:
+        yield item
 
 
 def async_trace_stream(
@@ -174,6 +233,24 @@ def async_trace_stream(
 ):
     def decorator(fn):
         @wraps(fn)
-        pass
+        def wrapper(*args, **kwargs):
+            hub_telemetry = HubTelemetry()
+            if hub_telemetry._enabled and hub_telemetry._tracer is not None:
+                with hub_telemetry._tracer.start_span(
+                    name,
+                    context=hub_telemetry.extract_current_context(),
+                    set_status_on_exception=True,
+                ) as span:  # noqa
+                    context = set_span_in_context(span)
+                    hub_telemetry.inject_current_context(context=context)
+
+                    nonlocal origin
+                    origin = origin if origin is not None else name
+                    add_attributes(span, attrs, name, origin, *args, **kwargs)
+                    return fn(*args, **kwargs)
+            else:
+                return fn(*args, **kwargs)
+
+        return wrapper
 
     return decorator
